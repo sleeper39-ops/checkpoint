@@ -22,7 +22,7 @@
         .btn-on { background: #34a853; color: white; }
         .btn-off { background: #ea4335; color: white; }
 
-        #log-box { background: #000; color: #00ff00; padding: 15px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; }
+        #log-box { background: #000; color: #00ff00; padding: 15px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; line-height: 1.4; }
         .conn-status { font-size: 12px; margin-bottom: 10px; color: #9aa0a6; }
     </style>
 </head>
@@ -61,16 +61,19 @@
 
         <div class="card">
             <h2>📜 Log ล่าสุด</h2>
-            <div id="log-box">รอการเชื่อมต่อจาก Tailscale...</div>
+            <div id="log-box">รอข้อมูลจากคอมพิวเตอร์...</div>
         </div>
     </div>
 
     <script>
-        const API_BASE = "http://100.86.85.2:9999/api"; 
+        // เปลี่ยนกลับเป็น 8080 ตาม Log ที่คุณได้รับจาก Python
+        const API_BASE = "http://100.86.85.2:8080"; 
 
         async function fetchConfig() {
             try {
-                const res = await fetch(`${API_BASE}/get_config`);
+                // เรียกผ่าน /api/get_config
+                const res = await fetch(`${API_BASE}/api/get_config`);
+                if (!res.ok) throw new Error("Server Error");
                 const data = await res.json();
                 
                 document.getElementById('current-status').innerText = data.status;
@@ -81,27 +84,31 @@
                 document.getElementById('work-time').value = data.time || '';
                 
                 document.getElementById('conn-text').innerHTML = "🟢 เชื่อมต่อคอมพิวเตอร์สำเร็จ (VPN Active)";
+                document.getElementById('conn-text').style.color = "#81c995";
                 
                 if (data.logs) {
-                    document.getElementById('log-box').innerHTML = data.logs.join("<br>");
+                    // กรองบรรทัดว่างและแสดงผล
+                    const cleanLogs = data.logs.filter(line => line.trim() !== "");
+                    document.getElementById('log-box').innerHTML = cleanLogs.join("<br>");
                     const box = document.getElementById('log-box');
                     box.scrollTop = box.scrollHeight;
                 }
             } catch (e) {
-                document.getElementById('conn-text').innerHTML = "🔴 ติดต่อคอมไม่ได้ (กรุณาต่อ Tailscale และ Allow Insecure Content)";
+                document.getElementById('conn-text').innerHTML = "🔴 ติดต่อคอมไม่ได้ (เช็ค VPN / Allow Insecure Content)";
+                document.getElementById('conn-text').style.color = "#f28b82";
             }
         }
 
         async function updateConfig(payload) {
             try {
-                await fetch(`${API_BASE}/set_config`, {
+                const res = await fetch(`${API_BASE}/api/set_config`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
-                fetchConfig();
+                if(res.ok) fetchConfig();
             } catch (e) {
-                alert("ส่งคำสั่งไม่สำเร็จ! เช็ค VPN หรือการตั้งค่าเบราว์เซอร์");
+                alert("ส่งคำสั่งไม่สำเร็จ! กรุณาเปิด Allow Insecure Content ใน Site Settings");
             }
         }
 
@@ -116,8 +123,10 @@
             alert("อัปเดตข้อมูลเรียบร้อย!");
         }
 
-        setInterval(fetchConfig, 5000); // อัปเดตทุก 5 วินาที
+        // ดึงข้อมูลครั้งแรกทันที
         fetchConfig();
+        // อัปเดตทุก 5 วินาที
+        setInterval(fetchConfig, 5000);
     </script>
 </body>
 </html>
