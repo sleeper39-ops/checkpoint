@@ -8,7 +8,7 @@
         body { font-family: 'Tahoma', sans-serif; background: #121212; color: #e8eaed; margin: 0; padding: 20px; }
         .container { max-width: 650px; margin: auto; }
         .card { background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #333; }
-        h2 { color: #8ab4f8; margin-top: 0; }
+        h2 { color: #8ab4f8; margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .status-on { color: #81c995; font-weight: bold; }
         .status-off { color: #f28b82; font-weight: bold; }
         
@@ -17,80 +17,78 @@
         input, select { background: #2d2e31; border: 1px solid #5f6368; color: white; padding: 10px; border-radius: 5px; outline: none; }
         
         .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-save { background: #8ab4f8; color: #202124; width: 100%; margin-top: 10px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
+        .btn-save { background: #8ab4f8; color: #202124; margin-top: 10px; }
         .btn-on { background: #34a853; color: white; }
         .btn-off { background: #ea4335; color: white; }
-        .btn-reset { background: #5f6368; color: white; padding: 5px 10px; font-size: 12px; }
+        .btn-reset { background: #5f6368; color: white; padding: 5px 10px; font-size: 12px; width: auto; align-self: flex-start; }
 
-        #log-box { background: #000; color: #00ff00; text-align: left; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 5px; }
+        #log-box { background: #000; color: #00ff00; text-align: left; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 5px; margin-top: 10px; }
+        .conn-indicator { font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <h2>⚙️ ระบบควบคุมอัตโนมัติ</h2>
-            <div id="connection-status" style="font-size: 12px; margin-bottom: 10px;">กำลังเชื่อมต่อ...</div>
-            <div class="status-box">
-                สถานะระบบ: <span id="current-status">---</span>
-            </div>
+            <h2>⚙️ ระบบควบคุม (สั่งจากมือถือ)</h2>
+            <div class="conn-indicator" id="conn-status">🟡 กำลังตรวจสอบการเชื่อมต่อกับเครื่องต้นทาง...</div>
+            <div style="margin-bottom: 15px;">สถานะระบบ: <span id="current-status">---</span></div>
             <div class="btn-group">
-                <button class="btn btn-on" onclick="updateConfig({status: 'ON'})">เปิด (ON)</button>
-                <button class="btn btn-off" onclick="updateConfig({status: 'OFF'})">ปิด (OFF)</button>
+                <button class="btn btn-on" onclick="updateConfig({status: 'ON'})">เปิดระบบ (ON)</button>
+                <button class="btn btn-off" onclick="updateConfig({status: 'OFF'})">ปิดระบบ (OFF)</button>
             </div>
         </div>
 
         <div class="card">
             <h2>📁 ตั้งค่าเส้นทาง (Path)</h2>
             <div class="row">
-                <label>ต้นทาง (Source):</label>
-                <input type="text" id="path-src" placeholder="C:\Source">
+                <label>ต้นทาง (Source - เครื่อง 100.86.85.2):</label>
+                <input type="text" id="path-src" placeholder="\\100.86.85.2\Signal\New folder">
             </div>
             <div class="row">
                 <label>ปลายทาง 1 (Dest 1):</label>
-                <input type="text" id="path-d1" placeholder="D:\Backup1">
+                <input type="text" id="path-d1" placeholder="\\100.86.85.2\Data2\Backup\1. ฝสส">
             </div>
             <div class="row">
                 <label>ปลายทาง 2 (Dest 2):</label>
-                <input type="text" id="path-d2" placeholder="\\NAS\Backup2">
+                <input type="text" id="path-d2" placeholder="\\100.76.47.110\d\...">
             </div>
-            <button class="btn btn-reset" onclick="resetPaths()">รีเซ็ต Path ทั้งหมด</button>
+            <button class="btn btn-reset" onclick="resetPaths()">ล้างค่า Path</button>
         </div>
 
         <div class="card">
-            <h2>⏰ เวลา & โหมด</h2>
-            <div style="display: flex; gap: 20px;">
+            <h2>⏰ เวลา & โหมดการทำงาน</h2>
+            <div style="display: flex; gap: 15px;">
                 <div class="row" style="flex: 1;">
                     <label>เวลาทำงาน:</label>
                     <input type="time" id="work-time">
                 </div>
                 <div class="row" style="flex: 1;">
-                    <label>โหมด (1 / 2):</label>
+                    <label>โหมด (1/2):</label>
                     <div style="display: flex; gap: 5px;">
-                        <select id="mode1"><option value="Copy">Copy</option><option value="Move">Move</option></select>
-                        <select id="mode2"><option value="Copy">Copy</option><option value="Move">Move</option></select>
+                        <select id="mode1" style="flex:1;"><option value="Copy">Copy</option><option value="Move">Move</option></select>
+                        <select id="mode2" style="flex:1;"><option value="Copy">Copy</option><option value="Move">Move</option></select>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-save" onclick="saveAllSettings()">💾 บันทึกการตั้งค่าทั้งหมด</button>
+            <button class="btn btn-save" onclick="saveAllSettings()">💾 บันทึกและอัปเดตเครื่องต้นทาง</button>
         </div>
 
         <div class="card">
-            <h2>📜 Log ล่าสุด</h2>
-            <div id="log-box">ระบบพร้อมใช้งาน...</div>
+            <h2>📜 Log จากเครื่องต้นทาง</h2>
+            <div id="log-box">รอรับข้อมูล...</div>
         </div>
     </div>
 
     <script>
-        // เปลี่ยนเป็น IP Tailscale ของคอมพิวเตอร์คุณ
-        const API_BASE = "http://100.xxx.xxx.xxx:5000/api"; 
+        // ใช้ IP เครื่องต้นทางที่คุณแจ้งไว้ (100.86.85.2)
+        const API_BASE = "http://100.86.85.2:5000/api"; 
 
         async function fetchConfig() {
             try {
-                const res = await fetch(`${API_BASE}/get_config`);
+                const res = await fetch(`${API_BASE}/get_config`, { signal: AbortSignal.timeout(3000) });
                 const data = await res.json();
                 
-                // อัปเดต UI จากข้อมูลที่ได้รับ
                 document.getElementById('current-status').innerText = data.status;
                 document.getElementById('current-status').className = data.status === 'ON' ? 'status-on' : 'status-off';
                 document.getElementById('path-src').value = data.source || '';
@@ -99,23 +97,30 @@
                 document.getElementById('work-time').value = data.time || '';
                 document.getElementById('mode1').value = data.mode1 || 'Copy';
                 document.getElementById('mode2').value = data.mode2 || 'Copy';
-                document.getElementById('connection-status').innerText = "🟢 เชื่อมต่อ Tailscale แล้ว";
+                document.getElementById('conn-status').innerHTML = "🟢 เชื่อมต่อกับเครื่องต้นทางสำเร็จ";
                 
                 if (data.logs) {
                     document.getElementById('log-box').innerHTML = data.logs.join("<br>");
+                    // Scroll ลงล่างสุดอัตโนมัติ
+                    const lb = document.getElementById('log-box');
+                    lb.scrollTop = lb.scrollHeight;
                 }
             } catch (e) {
-                document.getElementById('connection-status').innerText = "🔴 ออฟไลน์ (ตรวจสอบ VPN/Server)";
+                document.getElementById('conn-status').innerHTML = "🔴 ติดต่อเครื่องต้นทางไม่ได้ (ตรวจสอบ VPN ในมือถือ)";
             }
         }
 
         async function updateConfig(payload) {
-            await fetch(`${API_BASE}/set_config`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            fetchStatus();
+            try {
+                const res = await fetch(`${API_BASE}/set_config`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) fetchConfig();
+            } catch (e) {
+                alert("ส่งคำสั่งไม่สำเร็จ! กรุณาตรวจสอบการเชื่อมต่อ VPN");
+            }
         }
 
         function saveAllSettings() {
@@ -128,16 +133,20 @@
                 mode2: document.getElementById('mode2').value
             };
             updateConfig(payload);
-            alert("บันทึกการตั้งค่าเรียบร้อย!");
+            alert("บันทึกการตั้งค่าไปยังเครื่องต้นทางแล้ว!");
         }
 
         function resetPaths() {
-            document.getElementById('path-src').value = '';
-            document.getElementById('path-d1').value = '';
-            document.getElementById('path-d2').value = '';
+            if(confirm("ต้องการล้างค่าเส้นทางทั้งหมดใช่หรือไม่?")) {
+                document.getElementById('path-src').value = '';
+                document.getElementById('path-d1').value = '';
+                document.getElementById('path-d2').value = '';
+            }
         }
 
+        // ดึงข้อมูลทุก 5 วินาที
         setInterval(fetchConfig, 5000);
+        // รันครั้งแรกทันทีที่เปิดเว็บ
         fetchConfig();
     </script>
 </body>
