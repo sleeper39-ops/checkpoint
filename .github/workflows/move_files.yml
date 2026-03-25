@@ -7,10 +7,13 @@ jobs:
   move-files:
     runs-on: windows-latest
     steps:
-      - name: Connect Tailscale
+     - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          # เปลี่ยนจาก authkey เป็น oauth-client-id และ secret
+          oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_CLIENT_SECRET }}
+          tags: tag:ci # ใส่ Tag เพื่อให้ Tailscale รู้ว่าเป็นระบบ Automation
 
       - name: Execute Multi-Dest Move
         shell: powershell
