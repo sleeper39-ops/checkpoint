@@ -2,152 +2,70 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Storage Control Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 NAS Direct Command</title>
     <style>
-        body { font-family: 'Tahoma', sans-serif; background: #121212; color: #e8eaed; margin: 0; padding: 20px; }
-        .container { max-width: 650px; margin: auto; }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #333; }
-        h2 { color: #8ab4f8; margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .status-on { color: #81c995; font-weight: bold; }
-        .status-off { color: #f28b82; font-weight: bold; }
-        
-        .row { display: flex; flex-direction: column; text-align: left; margin-bottom: 15px; }
-        label { margin-bottom: 5px; font-size: 14px; color: #9aa0a6; }
-        input, select { background: #2d2e31; border: 1px solid #5f6368; color: white; padding: 10px; border-radius: 5px; outline: none; }
-        
-        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
-        .btn-save { background: #8ab4f8; color: #202124; margin-top: 10px; }
-        .btn-on { background: #34a853; color: white; }
-        .btn-off { background: #ea4335; color: white; }
-        .btn-reset { background: #5f6368; color: white; padding: 5px 10px; font-size: 12px; width: auto; align-self: flex-start; }
-
-        #log-box { background: #000; color: #00ff00; text-align: left; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 5px; margin-top: 10px; }
-        .conn-indicator { font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        body { font-family: sans-serif; background: #f0f0f5; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; }
+        button { width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h2>⚙️ ระบบควบคุม (สั่งจากมือถือ)</h2>
-            <div class="conn-indicator" id="conn-status">🟡 กำลังตรวจสอบการเชื่อมต่อกับเครื่องต้นทาง...</div>
-            <div style="margin-bottom: 15px;">สถานะระบบ: <span id="current-status">---</span></div>
-            <div class="btn-group">
-                <button class="btn btn-on" onclick="updateConfig({status: 'ON'})">เปิดระบบ (ON)</button>
-                <button class="btn btn-off" onclick="updateConfig({status: 'OFF'})">ปิดระบบ (OFF)</button>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2>📁 ตั้งค่าเส้นทาง (Path)</h2>
-            <div class="row">
-                <label>ต้นทาง (Source - เครื่อง 100.86.85.2):</label>
-                <input type="text" id="path-src" placeholder="\\100.86.85.2\Signal\New folder">
-            </div>
-            <div class="row">
-                <label>ปลายทาง 1 (Dest 1):</label>
-                <input type="text" id="path-d1" placeholder="\\100.86.85.2\Data2\Backup\1. ฝสส">
-            </div>
-            <div class="row">
-                <label>ปลายทาง 2 (Dest 2):</label>
-                <input type="text" id="path-d2" placeholder="\\100.76.47.110\d\...">
-            </div>
-            <button class="btn btn-reset" onclick="resetPaths()">ล้างค่า Path</button>
-        </div>
+<div class="card">
+    <h2>🚀 สั่งย้ายไฟล์จากมือถือ (VPN)</h2>
+    <input type="text" id="nasIp" placeholder="IP ของ NAS (เช่น 10.8.0.x)">
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <hr>
+    <input type="text" id="filePath" placeholder="ที่อยู่ไฟล์ต้นทาง (เช่น /Public/file.zip)">
+    <input type="text" id="destPath" placeholder="ที่อยู่ปลายทาง">
+    
+    <button onclick="moveFile()">📤 สั่งย้ายทันที</button>
+    <div id="status" style="margin-top: 15px; color: #555;">รอคำสั่ง...</div>
+</div>
 
-        <div class="card">
-            <h2>⏰ เวลา & โหมดการทำงาน</h2>
-            <div style="display: flex; gap: 15px;">
-                <div class="row" style="flex: 1;">
-                    <label>เวลาทำงาน:</label>
-                    <input type="time" id="work-time">
-                </div>
-                <div class="row" style="flex: 1;">
-                    <label>โหมด (1/2):</label>
-                    <div style="display: flex; gap: 5px;">
-                        <select id="mode1" style="flex:1;"><option value="Copy">Copy</option><option value="Move">Move</option></select>
-                        <select id="mode2" style="flex:1;"><option value="Copy">Copy</option><option value="Move">Move</option></select>
-                    </div>
-                </div>
-            </div>
-            <button class="btn btn-save" onclick="saveAllSettings()">💾 บันทึกและอัปเดตเครื่องต้นทาง</button>
-        </div>
+<script>
+async function moveFile() {
+    const ip = document.getElementById('nasIp').value;
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    const src = document.getElementById('filePath').value;
+    const dest = document.getElementById('destPath').value;
 
-        <div class="card">
-            <h2>📜 Log จากเครื่องต้นทาง</h2>
-            <div id="log-box">รอรับข้อมูล...</div>
-        </div>
-    </div>
+    const statusObj = document.getElementById('status');
+    statusObj.innerText = "⌛ กำลังส่งคำสั่งไปยัง QNAP API...";
 
-    <script>
-        // ใช้ IP เครื่องต้นทางที่คุณแจ้งไว้ (100.86.85.2)
-        const API_BASE = "http://100.86.85.2:5000/api"; 
+    // สำหรับ QNAP เราจะใช้ CGI API ในการสั่งงาน
+    // หมายเหตุ: กรณีนี้คุณต้องเปิดอนุญาต CORS บน NAS หรือรัน HTML นี้จาก Localhost
+    const loginUrl = `http://${ip}:8080/cgi-bin/filemanager/utilRequest.cgi?func=login&user=${user}&pwd=${btoa(pass)}`;
+    
+    try {
+        // 1. ล็อกอินเพื่อเอา SID (Session ID)
+        const loginRes = await fetch(loginUrl);
+        const loginData = await loginRes.json();
+        const sid = loginData.sid;
 
-        async function fetchConfig() {
-            try {
-                const res = await fetch(`${API_BASE}/get_config`, { signal: AbortSignal.timeout(3000) });
-                const data = await res.json();
-                
-                document.getElementById('current-status').innerText = data.status;
-                document.getElementById('current-status').className = data.status === 'ON' ? 'status-on' : 'status-off';
-                document.getElementById('path-src').value = data.source || '';
-                document.getElementById('path-d1').value = data.dest1 || '';
-                document.getElementById('path-d2').value = data.dest2 || '';
-                document.getElementById('work-time').value = data.time || '';
-                document.getElementById('mode1').value = data.mode1 || 'Copy';
-                document.getElementById('mode2').value = data.mode2 || 'Copy';
-                document.getElementById('conn-status').innerHTML = "🟢 เชื่อมต่อกับเครื่องต้นทางสำเร็จ";
-                
-                if (data.logs) {
-                    document.getElementById('log-box').innerHTML = data.logs.join("<br>");
-                    // Scroll ลงล่างสุดอัตโนมัติ
-                    const lb = document.getElementById('log-box');
-                    lb.scrollTop = lb.scrollHeight;
-                }
-            } catch (e) {
-                document.getElementById('conn-status').innerHTML = "🔴 ติดต่อเครื่องต้นทางไม่ได้ (ตรวจสอบ VPN ในมือถือ)";
-            }
+        if(!sid) throw new Error("ล็อกอินไม่สำเร็จ!");
+
+        // 2. สั่งย้ายไฟล์ (Move)
+        const moveUrl = `http://${ip}:8080/cgi-bin/filemanager/utilRequest.cgi?func=move&source_path=${src}&dest_path=${dest}&sid=${sid}`;
+        const moveRes = await fetch(moveUrl);
+        const moveData = await moveRes.json();
+
+        if(moveData.status === 1) {
+            statusObj.innerText = "✅ ย้ายไฟล์สำเร็จแล้ว!";
+            alert("สำเร็จ!");
+        } else {
+            throw new Error(moveData.error || "ย้ายไม่สำเร็จ");
         }
+    } catch (e) {
+        statusObj.innerText = "❌ ผิดพลาด: " + e.message;
+        alert("ผิดพลาด!");
+    }
+}
+</script>
 
-        async function updateConfig(payload) {
-            try {
-                const res = await fetch(`${API_BASE}/set_config`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                if(res.ok) fetchConfig();
-            } catch (e) {
-                alert("ส่งคำสั่งไม่สำเร็จ! กรุณาตรวจสอบการเชื่อมต่อ VPN");
-            }
-        }
-
-        function saveAllSettings() {
-            const payload = {
-                source: document.getElementById('path-src').value,
-                dest1: document.getElementById('path-d1').value,
-                dest2: document.getElementById('path-d2').value,
-                time: document.getElementById('work-time').value,
-                mode1: document.getElementById('mode1').value,
-                mode2: document.getElementById('mode2').value
-            };
-            updateConfig(payload);
-            alert("บันทึกการตั้งค่าไปยังเครื่องต้นทางแล้ว!");
-        }
-
-        function resetPaths() {
-            if(confirm("ต้องการล้างค่าเส้นทางทั้งหมดใช่หรือไม่?")) {
-                document.getElementById('path-src').value = '';
-                document.getElementById('path-d1').value = '';
-                document.getElementById('path-d2').value = '';
-            }
-        }
-
-        // ดึงข้อมูลทุก 5 วินาที
-        setInterval(fetchConfig, 5000);
-        // รันครั้งแรกทันทีที่เปิดเว็บ
-        fetchConfig();
-    </script>
 </body>
 </html>
