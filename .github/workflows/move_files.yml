@@ -1,0 +1,40 @@
+name: Remote File Mover (Tailscale)
+
+on:
+  workflow_dispatch: # ส่วนนี้จะทำให้มีปุ่ม "Run workflow" โผล่ขึ้นมาให้เรากดเองได้
+    inputs:
+      source_path:
+        description: 'Path ต้นทาง (เครื่อง 1)'
+        required: true
+        default: 'C:\Source'
+      target_ip:
+        description: 'IP Tailscale (เครื่อง 2)'
+        required: true
+      target_folder:
+        description: 'ชื่อ Shared Folder (เครื่อง 2)'
+        required: true
+
+jobs:
+  move-files:
+    runs-on: windows-latest
+    steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Execute Move via PowerShell
+        run: |
+          $src = "${{ github.event.inputs.source_path }}"
+          $dest = "\\${{ github.event.inputs.target_ip }}\${{ github.event.inputs.target_folder }}"
+          
+          # เชื่อมต่อ Network Drive ผ่าน VPN
+          net use \\${{ github.event.inputs.target_ip }} /y
+          
+          if (Test-Path $src) {
+            Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
+            Write-Host "✅ ย้ายไฟล์สำเร็จไปยัง $dest"
+          } else {
+            Write-Host "❌ ไม่พบ Path ต้นทาง: $src"
+            exit 1
+          }
