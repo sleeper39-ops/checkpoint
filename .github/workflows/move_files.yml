@@ -1,18 +1,7 @@
 name: Remote File Mover (Tailscale)
 
 on:
-  workflow_dispatch: # ส่วนนี้จะทำให้มีปุ่ม "Run workflow" โผล่ขึ้นมาให้เรากดเองได้
-    inputs:
-      source_path:
-        description: 'Path ต้นทาง (เครื่อง 1)'
-        required: true
-        default: 'C:\Source'
-      target_ip:
-        description: 'IP Tailscale (เครื่อง 2)'
-        required: true
-      target_folder:
-        description: 'ชื่อ Shared Folder (เครื่อง 2)'
-        required: true
+  workflow_dispatch: # ปุ่มกด Run จากหน้าเว็บ/มือถือ
 
 jobs:
   move-files:
@@ -23,18 +12,53 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Execute Move via PowerShell
+      - name: Execute Multi-Dest Move
+        shell: powershell
         run: |
-          $src = "${{ github.event.inputs.source_path }}"
-          $dest = "\\${{ github.event.inputs.target_ip }}\${{ github.event.inputs.target_folder }}"
-          
-          # เชื่อมต่อ Network Drive ผ่าน VPN
-          net use \\${{ github.event.inputs.target_ip }} /y
-          
+          # ตั้งค่าให้ PowerShell รองรับภาษาไทย (UTF-8)
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+          # --- กำหนดค่า Path (อัปเดต IP ปลายทางที่ 2 แล้ว) ---
+          $src   = "\\100.86.85.2\Signal\New folder"
+          $dest1 = "\\100.86.85.2\Data2\Backup\1. ฝสส"
+          $dest2 = "\\100.76.47.110\d\งบประมาณ 2569\01_งานประจำวัน\01_ข่าวประจำวัน\012_ข่าวรับจากชุด"
+
+          # --- ฟังก์ชันย้ายไฟล์ ---
+          function Move-ToDestination($targetPath, $label) {
+              try {
+                  $ip = $targetPath.Split('\')[2]
+                  Write-Host "------------------------------------------"
+                  Write-Host "🌐 กำลังเชื่อมต่อเน็ตเวิร์คไปที่: $ip ($label)"
+                  
+                  # สั่งยืนยันการเชื่อมต่อเน็ตเวิร์ค
+                  net use "\\$ip" /y
+
+                  if (!(Test-Path $targetPath)) {
+                      New-Item -ItemType Directory -Force -Path $targetPath
+                      Write-Host "📂 สร้างโฟลเดอร์ปลายทางใหม่: $targetPath"
+                  }
+
+                  Write-Host "🚚 กำลังคัดลอกไฟล์จากต้นทาง..."
+                  Copy-Item -Path "$src\*" -Destination $targetPath -Recurse -Force
+                  Write-Host "✅ สำเร็จ: $label"
+              } catch {
+                  Write-Host "❌ เกิดข้อผิดพลาดที่ $label : $($_.Exception.Message)"
+              }
+          }
+
+          # --- เริ่มทำงาน ---
           if (Test-Path $src) {
-            Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
-            Write-Host "✅ ย้ายไฟล์สำเร็จไปยัง $dest"
+              Write-Host "🔍 พบต้นทาง: $src"
+              
+              # ส่งไปปลายทางที่ 1 (เครื่องเดิม 100.86.85.2)
+              Move-ToDestination -targetPath $dest1 -label "ปลายทาง 1"
+              
+              # ส่งไปปลายทางที่ 2 (เครื่องใหม่ 100.76.47.110)
+              Move-ToDestination -targetPath $dest2 -label "ปลายทาง 2"
+              
+              Write-Host "------------------------------------------"
+              Write-Host "🎉 จบกระบวนการทำงาน!"
           } else {
-            Write-Host "❌ ไม่พบ Path ต้นทาง: $src"
-            exit 1
+              Write-Host "❌ ไม่พบโฟลเดอร์ต้นทาง: $src (กรุณาเช็คว่าเครื่อง 100.86.85.2 เปิดอยู่และต่อ Tailscale)"
+              exit 1
           }
