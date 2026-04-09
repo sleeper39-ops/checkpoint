@@ -3,52 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - v30 Compact UI</title>
+    <title>Udon Checkpoint</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
         :root { --primary: #1a73e8; --red: #d93025; --dark: #111; --accent: #fbbc04; }
         body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; z-index: 10; }
-        
         .header { position: fixed; top: 12px; left: 12px; z-index: 1000; background: white; padding: 6px 14px; border-radius: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 6px; }
         .header h1 { margin: 0; font-size: 13px; color: #333; font-weight: 600; }
-
-        /* Compact Icon Design (v30) */
         .pin-container { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-        .white-circle { 
-            background: white; width: 34px; height: 34px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 1.5px solid white;
-            position: relative; font-size: 20px; pointer-events: auto; transform: translateZ(0);
-        }
-        .white-circle::after { 
-            content: ''; position: absolute; bottom: -8px; left: 50%; 
-            transform: translateX(-50%); width: 0; height: 0; 
-            border-left: 6px solid transparent; border-right: 6px solid transparent; 
-            border-top: 10px solid white; 
-        }
-        .label-tag { 
-            background: rgba(0,0,0,0.85); color: white; padding: 3px 10px; 
-            border-radius: 10px; font-size: 10px; margin-top: 4px; 
-            white-space: nowrap; pointer-events: auto; text-align: center;
-            line-height: 1.25; border: 1px solid rgba(255,255,255,0.15);
-        }
-
+        .white-circle { background: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 1.5px solid white; position: relative; font-size: 20px; pointer-events: auto; }
+        .white-circle::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid white; }
+        .label-tag { background: rgba(0,0,0,0.85); color: white; padding: 3px 10px; border-radius: 10px; font-size: 10px; margin-top: 4px; white-space: nowrap; pointer-events: auto; text-align: center; line-height: 1.25; border: 1px solid rgba(255,255,255,0.15); }
         #chatDrawer { position: fixed; bottom: -65vh; left: 0; width: 100%; height: 60vh; background: white; z-index: 2000; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.3); transition: 0.4s; display: flex; flex-direction: column; }
         #chatDrawer.active { bottom: 0; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 8px; }
         .msg { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 14px; position: relative; }
-        .chat-img { width: 100%; max-width: 250px; border-radius: 12px; margin-top: 5px; display: block; pointer-events: none; } /* ปิดการคลิกที่รูป */
-
+        .chat-img { width: 100%; max-width: 250px; border-radius: 12px; margin-top: 5px; display: block; pointer-events: none; }
         .bottom-nav { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; width: 92%; max-width: 450px; transition: 0.3s; }
         .bottom-nav.hide { transform: translate(-50%, 150%); }
         .btn { flex: 1; padding: 16px; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Kanit'; }
-        #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 8px 16px; border-radius: 8px; z-index: 8000; display: none; font-size: 13px; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9200; display: none; align-items: center; justify-content: center; }
+        .modal { background: white; padding: 25px; border-radius: 24px; width: 260px; text-align: center; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -56,28 +37,28 @@
         <div style="position:absolute; top:16px; left:0; width:100%; height:2px; background:orange;"></div>
         <div style="position:absolute; left:16px; top:0; width:2px; height:100%; background:orange;"></div>
     </div>
-    <div id="toast"></div>
+    <div id="toast" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:white; padding:8px 16px; border-radius:8px; z-index:8000; display:none; font-size:13px;"></div>
 
-    <div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9200; display:none; align-items:center; justify-content:center;">
-        <div style="background:white; padding:25px; border-radius:24px; width:260px; text-align:center;">
-            <h3 style="margin-top:0">🔑 แอดมินล็อกอิน</h3>
+    <div id="loginOverlay" class="overlay">
+        <div class="modal">
+            <h3 style="margin-top:0">🔑 แอดมินเข้าใช้งาน</h3>
             <input type="text" id="adminU" placeholder="User" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
             <input type="password" id="adminP" placeholder="Pass" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
-            <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ตกลง</button>
+            <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ล็อกอิน</button>
         </div>
     </div>
 
-    <div id="nickOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9100; display:none; align-items:center; justify-content:center;">
-        <div style="background:white; padding:30px; border-radius:24px; text-align:center; width:260px">
+    <div id="nickOverlay" class="overlay">
+        <div class="modal">
             <h3>ตั้งชื่อเล่นเพื่อแชท</h3>
             <input type="text" id="nickInput" placeholder="กาย อุดร" style="width:100%; padding:14px; margin-bottom:15px; border:1px solid #ddd; border-radius:12px; font-family:'Kanit'">
-            <button onclick="saveNick()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:bold">เริ่มเลย</button>
+            <button onclick="saveNick()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:bold">เริ่มใช้งาน</button>
         </div>
     </div>
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="16">
-        <h1>Udon Checkpoint (v30 Compact)</h1>
+        <h1>Udon Checkpoint (v31)</h1>
         <button id="clearChatBtn" style="display:none; background:red; color:white; padding:4px 10px; border:none; border-radius:20px; font-size:10px; margin-left:8px" onclick="clearAllChat()">ล้างแชท</button>
     </div>
 
@@ -98,15 +79,17 @@
         <div style="padding:15px; border-top:1px solid #eee; display:flex; gap:10px; margin-bottom:20px; align-items:center">
             <input type="file" id="imgInput" style="display:none" accept="image/*" onchange="uploadToImgBB(this)">
             <button onclick="document.getElementById('imgInput').click()" style="background:#f1f3f4; border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center"><i data-lucide="camera" style="width:18px"></i></button>
-            <input type="text" id="msgInput" style="flex:1; padding:12px 18px; border:1px solid #ddd; border-radius:30px; outline:none; font-family:'Kanit'; font-size:14px" placeholder="คุยกันได้เลย...">
+            <input type="text" id="msgInput" style="flex:1; padding:12px 18px; border:1px solid #ddd; border-radius:30px; outline:none; font-family:'Kanit'; font-size:14px" placeholder="คุยกันที่นี่...">
             <button onclick="sendMsg()" style="background:var(--primary); color:white; border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center"><i data-lucide="send" style="width:18px"></i></button>
         </div>
     </div>
 
     <div class="bottom-nav">
         <button class="btn" style="background:#333; color:white" onclick="toggleChat()"><i data-lucide="message-square" style="width:18px"></i> แชท</button>
+        <!-- ปุ่ม แจ้งด่าน ใช้ไอคอน 📌 -->
         <button class="btn" id="startBtn" style="background:var(--primary); color:white" onclick="startSel()">📌 แจ้งด่าน</button>
-        <button class="btn" id="confirmPosBtn" style="background:var(--accent); color:black; display:none" onclick="confPos()">📍 ยืนยันพิกัด</button>
+        <!-- ปุ่ม ยืนยันพิกัด ใช้ไอคอน 📌 ตามสั่งครับ -->
+        <button class="btn" id="confirmPosBtn" style="background:var(--accent); color:black; display:none" onclick="confPos()">📌 ยืนยันพิกัด</button>
         <button class="btn" onclick="location.reload()" style="flex:0.4"><i data-lucide="rotate-cw" style="width:18px"></i></button>
     </div>
 
@@ -129,21 +112,16 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const P_REF = db.ref('points');
-        const C_REF = db.ref('chat');
-        const PRES_REF = db.ref('presence');
+        const P_REF = db.ref('points'); const C_REF = db.ref('chat'); const PRES_REF = db.ref('presence');
         const IMGBB_API_KEY = "9dd82c3e09983c63ec7cbadb2d7cf1bd";
-
         let map, markerGroup, nick = localStorage.getItem('chat_nick'), tempMarker = null, isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
         window.onload = () => {
             map = L.map('map', { zoomControl:false, attributionControl:false }).setView([17.4138, 102.7872], 14);
             L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2', { detectRetina: true }).addTo(map);
-            markerGroup = L.layerGroup().addTo(map);
-            listenPoints(); listenChat(); listenPresence();
+            markerGroup = L.layerGroup().addTo(map); listenPoints(); listenChat(); listenPresence();
             if(!nick) document.getElementById('nickOverlay').style.display='flex'; else setupPresence();
-            if(isAdmin) updateAdminUI();
-            lucide.createIcons();
+            if(isAdmin) updateAdminUI(); lucide.createIcons();
         };
 
         function listenPoints() {
@@ -153,37 +131,23 @@
                     const p = c.val(); if(Date.now() - p.createdAt > (3*60*60*1000)) { c.ref.remove(); return; }
                     const d = new Date(p.createdAt); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                     const emoji = p.type.includes('จราจร') ? '👮' : '🚨';
-                    
-                    // Compact Label Design (v30)
-                    const html = `
-                        <div class="pin-container">
-                            <div class="white-circle">${emoji}</div>
-                            <div class="label-tag">
-                                <div style="font-weight:600; font-size:10px">${p.type}</div>
-                                <div style="font-size:9px; opacity:0.9">(${p.reporter}) ${time}</div>
-                            </div>
-                        </div>`;
-                    
+                    const html = `<div class="pin-container"><div class="white-circle">${emoji}</div><div class="label-tag"><div style="font-weight:600; font-size:10px">${p.type}</div><div style="font-size:9px; opacity:0.9">(${p.reporter}) ${time}</div></div></div>`;
                     const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'dm', html, iconSize:[0,0], iconAnchor:[17,45] }) }).addTo(markerGroup);
                     m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>${time}</small><hr><button onclick="voteDown('${c.key}')" style="width:100%; padding:8px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${isAdmin?'❌ ลบทันที':`❌ ไม่อยู่แล้ว (${p.votes||0}/3)`}</button></div>`);
                 });
             });
         }
-
-        // --- Standard Logic ---
         function updateAdminUI() { document.getElementById('adminIcon').style.display='block'; document.getElementById('userIcon').style.display='none'; document.getElementById('clearChatBtn').style.display='inline-block'; listenChat(); listenPoints(); }
-        function doLogin() { if(document.getElementById('adminU').value==='admin' && document.getElementById('adminP').value==='admin22') { isAdmin=true; sessionStorage.setItem('isAdmin','true'); document.getElementById('loginOverlay').style.display='none'; updateAdminUI(); } else alert("รหัสผิด"); }
+        function doLogin() { if(document.getElementById('adminU').value==='admin' && document.getElementById('adminP').value==='admin22') { isAdmin=true; sessionStorage.setItem('isAdmin','true'); document.getElementById('loginOverlay').style.display='none'; updateAdminUI(); } else alert("Error"); }
         function uploadToImgBB(input) { const file = input.files[0]; if(!file || !nick) return; const formData = new FormData(); formData.append('image', file); fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body:formData }).then(res=>res.json()).then(data=>{ if(data.success) C_REF.push({ n: nick, t:"", img: data.data.url, ts: firebase.database.ServerValue.TIMESTAMP }); }); input.value = ""; }
         function listenChat() {
             C_REF.limitToLast(50).on('value', snap => {
                 const l = document.getElementById('chatList'); l.innerHTML = "";
                 snap.forEach(c => {
-                    const m = c.val(); const isMe = m.n === nick; const id = c.key;
-                    const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+                    const m = c.val(); const isMe = m.n === nick; const id = c.key; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                     const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`;
                     let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`;
-                    if(m.t) content += `<div>${m.t}</div>`;
-                    if(m.img) content += `<img src="${m.img}" class="chat-img">`; // นำ onclick ออกเพื่อป้องกันการคลิกที่รูป
+                    if(m.t) content += `<div>${m.t}</div>`; if(m.img) content += `<img src="${m.img}" class="chat-img">`;
                     if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`;
                     div.innerHTML = content; l.appendChild(div);
                 });
