@@ -2,131 +2,334 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Remote Storage Control</title>
-    <style>
-        body { font-family: 'Tahoma', sans-serif; background: #121212; color: #e8eaed; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #333; }
-        h2 { color: #8ab4f8; margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .status-on { color: #81c995; font-weight: bold; }
-        .status-off { color: #f28b82; font-weight: bold; }
-        
-        .row { display: flex; flex-direction: column; text-align: left; margin-bottom: 15px; }
-        label { margin-bottom: 5px; font-size: 13px; color: #9aa0a6; }
-        input { background: #2d2e31; border: 1px solid #5f6368; color: white; padding: 12px; border-radius: 8px; outline: none; }
-        
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
-        .btn-save { background: #8ab4f8; color: #202124; margin-top: 10px; }
-        .btn-on { background: #34a853; color: white; }
-        .btn-off { background: #ea4335; color: white; }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Udon Checkpoint Report - ระบบแจ้งด่านอุดร</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-        #log-box { background: #000; color: #00ff00; padding: 15px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; line-height: 1.4; }
-        .conn-status { font-size: 12px; margin-bottom: 10px; color: #9aa0a6; }
+    <style>
+        :root {
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --warning: #ffa502;
+            --dark: #2f3542;
+            --light: #f1f2f6;
+            --glass: rgba(255, 255, 255, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Kanit', sans-serif; 
+            background-color: var(--dark);
+            overflow: hidden;
+        }
+
+        #map { 
+            height: 100vh; 
+            width: 100vw; 
+            z-index: 1; 
+        }
+
+        /* Dark Map Filter */
+        .leaflet-layer,
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out,
+        .leaflet-control-attribution {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
+        .leaflet-marker-icon, 
+        .leaflet-marker-shadow,
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            filter: none !important;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            width: fit-content;
+            max-width: 90%;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--dark);
+            white-space: nowrap;
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 15px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            font-family: 'Kanit', sans-serif;
+        }
+
+        .btn-report { 
+            background: linear-gradient(135deg, #ff4757, #ff6b81); 
+            color: white; 
+        }
+
+        .btn-report.selecting {
+            background: linear-gradient(135deg, var(--warning), #ff7f50);
+            animation: selecting-pulse 1s infinite;
+        }
+
+        @keyframes selecting-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 165, 2, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 165, 2, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 165, 2, 0); }
+        }
+        
+        .btn-refresh { 
+            background: var(--glass); 
+            color: var(--dark);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Popup */
+        .leaflet-popup-content-wrapper { border-radius: 15px; background: var(--glass); backdrop-filter: blur(10px); }
+        .popup-container { text-align: center; min-width: 180px; }
+        .popup-title { font-weight: 600; font-size: 18px; color: var(--primary); display: block; }
+        .popup-time { font-size: 12px; color: #666; margin-bottom: 10px; display: block; }
+        .delete-btn { background: var(--warning); color: white; border: none; padding: 10px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+        /* Loader */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 0.5s ease; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Instruction Toast */
+        #toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--warning);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h2>⚙️ ระบบควบคุมอัตโนมัติ</h2>
-            <div class="conn-status" id="conn-text">📡 สถานะการเชื่อมต่อ: กำลังตรวจสอบ...</div>
-            <div style="margin-bottom: 15px;">สถานะระบบ: <span id="current-status">---</span></div>
-            <div class="btn-group">
-                <button class="btn btn-on" onclick="updateConfig({status: 'ON'})">เปิด (ON)</button>
-                <button class="btn btn-off" onclick="updateConfig({status: 'OFF'})">ปิด (OFF)</button>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2>📁 ตั้งค่าเส้นทาง (Path)</h2>
-            <div class="row">
-                <label>ต้นทาง (Source):</label>
-                <input type="text" id="path-src">
-            </div>
-            <div class="row">
-                <label>ปลายทาง 1 (Dest 1):</label>
-                <input type="text" id="path-d1">
-            </div>
-            <div class="row">
-                <label>ปลายทาง 2 (Dest 2):</label>
-                <input type="text" id="path-d2">
-            </div>
-            <div class="row">
-                <label>เวลาทำงาน (HH:MM):</label>
-                <input type="time" id="work-time">
-            </div>
-            <button class="btn btn-save" onclick="saveAllSettings()">💾 บันทึกการตั้งค่าลงคอมพิวเตอร์</button>
-        </div>
-
-        <div class="card">
-            <h2>📜 Log ล่าสุด</h2>
-            <div id="log-box">รอข้อมูลจากคอมพิวเตอร์...</div>
-        </div>
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top:15px">กำลังโหลดข้อมูลด่าน...</p>
     </div>
 
+    <div id="toast">👆 กรุณาแตะจุดบนแผนที่เพื่อแจ้งพิกัด</div>
+
+    <div class="header">
+        <i data-lucide="map-pin" style="color: var(--primary)"></i>
+        <h1>ระบบแจ้งด่านอุดรธานี</h1>
+        <div class="badge">LIVE</div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="bottom-nav">
+        <button class="btn btn-refresh" onclick="location.reload()">
+            <i data-lucide="refresh-cw"></i> อัปเดต
+        </button>
+        <button class="btn btn-report" id="reportBtn" onclick="toggleSelectionMode()">
+            <i data-lucide="alert-triangle"></i> แจ้งพบด่าน
+        </button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // เปลี่ยนกลับเป็น 8080 ตาม Log ที่คุณได้รับจาก Python
-        const API_BASE = "http://100.86.85.2:8080"; 
+        const STORAGE_KEY = 'udon_checkpoints_v2';
+        let isSelectingLocation = false;
 
-        async function fetchConfig() {
-            try {
-                // เรียกผ่าน /api/get_config
-                const res = await fetch(`${API_BASE}/api/get_config`);
-                if (!res.ok) throw new Error("Server Error");
-                const data = await res.json();
-                
-                document.getElementById('current-status').innerText = data.status;
-                document.getElementById('current-status').className = data.status === 'ON' ? 'status-on' : 'status-off';
-                document.getElementById('path-src').value = data.source || '';
-                document.getElementById('path-d1').value = data.dest1 || '';
-                document.getElementById('path-d2').value = data.dest2 || '';
-                document.getElementById('work-time').value = data.time || '';
-                
-                document.getElementById('conn-text').innerHTML = "🟢 เชื่อมต่อคอมพิวเตอร์สำเร็จ (VPN Active)";
-                document.getElementById('conn-text').style.color = "#81c995";
-                
-                if (data.logs) {
-                    // กรองบรรทัดว่างและแสดงผล
-                    const cleanLogs = data.logs.filter(line => line.trim() !== "");
-                    document.getElementById('log-box').innerHTML = cleanLogs.join("<br>");
-                    const box = document.getElementById('log-box');
-                    box.scrollTop = box.scrollHeight;
-                }
-            } catch (e) {
-                document.getElementById('conn-text').innerHTML = "🔴 ติดต่อคอมไม่ได้ (เช็ค VPN / Allow Insecure Content)";
-                document.getElementById('conn-text').style.color = "#f28b82";
-            }
+        // --- Data Logic ---
+        function getCheckpoints() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
         }
 
-        async function updateConfig(payload) {
-            try {
-                const res = await fetch(`${API_BASE}/api/set_config`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                if(res.ok) fetchConfig();
-            } catch (e) {
-                alert("ส่งคำสั่งไม่สำเร็จ! กรุณาเปิด Allow Insecure Content ใน Site Settings");
-            }
-        }
-
-        function saveAllSettings() {
-            const payload = {
-                source: document.getElementById('path-src').value,
-                dest1: document.getElementById('path-d1').value,
-                dest2: document.getElementById('path-d2').value,
-                time: document.getElementById('work-time').value
+        function saveCheckpoint(lat, lng, type) {
+            const checkpoints = getCheckpoints();
+            const newPoint = {
+                id: Date.now(),
+                lat: lat,
+                lng: lng,
+                type: type,
+                timestamp: new Date().toISOString()
             };
-            updateConfig(payload);
-            alert("อัปเดตข้อมูลเรียบร้อย!");
+            checkpoints.push(newPoint);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoints));
+            return newPoint;
         }
 
-        // ดึงข้อมูลครั้งแรกทันที
-        fetchConfig();
-        // อัปเดตทุก 5 วินาที
-        setInterval(fetchConfig, 5000);
+        function deleteCheckpoint(id) {
+            let checkpoints = getCheckpoints();
+            checkpoints = checkpoints.filter(cp => cp.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoints));
+            location.reload();
+        }
+
+        // --- Map Init ---
+        const udonCoords = [17.4138, 102.7872]; // เซ็นเตอร์อุดร
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(udonCoords, 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+        // --- Selection Logic ---
+        function toggleSelectionMode() {
+            const btn = document.getElementById('reportBtn');
+            const toast = document.getElementById('toast');
+            
+            isSelectingLocation = !isSelectingLocation;
+
+            if (isSelectingLocation) {
+                btn.innerHTML = '<i data-lucide="map-pin"></i> เลือกจุดบนแผนที่...';
+                btn.classList.add('selecting');
+                toast.style.display = 'block';
+            } else {
+                btn.innerHTML = '<i data-lucide="alert-triangle"></i> แจ้งพบด่าน';
+                btn.classList.remove('selecting');
+                toast.style.display = 'none';
+            }
+            lucide.createIcons();
+        }
+
+        map.on('click', function(e) {
+            if (isSelectingLocation) {
+                const { lat, lng } = e.latlng;
+                
+                // กระตุ้น Haptic (ถ้ามี)
+                if (window.navigator.vibrate) window.navigator.vibrate(50);
+
+                const type = prompt("🚨 พบด่านชนิดใดที่จุดนี้?\n(เช่น ด่านตรวจ, ด่านลอย, จราจร)");
+                if (type && type.trim() !== "") {
+                    saveCheckpoint(lat, lng, type.trim());
+                    location.reload();
+                } else {
+                    toggleSelectionMode(); // ยกเลิกโหมด
+                }
+            }
+        });
+
+        // --- Render ---
+        function renderMarkers() {
+            const checkpoints = getCheckpoints();
+            checkpoints.forEach(cp => {
+                const marker = L.marker([cp.lat, cp.lng]).addTo(map);
+                const timeStr = new Date(cp.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                const content = `
+                    <div class="popup-container">
+                        <span class="popup-title">🚨 ${cp.type}</span>
+                        <span class="popup-time">แจ้งเมื่อ: ${timeStr} น.</span>
+                        <button class="delete-btn" onclick="deleteCheckpoint(${cp.id})">
+                            <i data-lucide="check-circle" style="width:14px"></i> ด่านเลิกแล้ว
+                        </button>
+                    </div>
+                `;
+                marker.bindPopup(content);
+                marker.on('popupopen', () => lucide.createIcons());
+            });
+        }
+
+        // --- Init ---
+        window.onload = () => {
+            renderMarkers();
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+            }, 800);
+
+            // พยายามหาตำแหน่งผู้ใช้ (เพื่อแสดงตำแหน่งเราเฉยๆ ไม่ได้ใช้บันทึกอัตโนมัติ)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    L.circleMarker([latitude, longitude], {
+                        radius: 7, fillColor: "#3498db", color: "#fff", weight: 2, opacity: 1, fillOpacity: 1
+                    }).addTo(map).bindTooltip("คุณอยู่ที่นี่");
+                    
+                    // เลื่อนแผนที่ไปหาคนใช้
+                    map.panTo([latitude, longitude]);
+                }, null, { enableHighAccuracy: true });
+            }
+        };
     </script>
 </body>
 </html>
