@@ -14,33 +14,43 @@
         .header { position: fixed; top: 12px; left: 12px; z-index: 1000; background: white; padding: 6px 14px; border-radius: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 6px; }
         .header h1 { margin: 0; font-size: 13px; color: #333; font-weight: 600; }
         
-        /* เป้าเล็งแบบแม่นยำ (v44) */
+        /* เป้าเล็งแบบสร้างเอง (v45) - เพื่อความแม่นยำทุกแพลตฟอร์ม */
         #crosshair { 
             position: fixed; top: 50%; left: 50%; 
-            transform: translate(-50%, -92%); /* ปลายเข็ม 📌 อยู่ตรงกลางพอดี */
-            z-index: 5000; display: none; font-size: 38px; pointer-events: none; 
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+            width: 32px; height: 32px;
+            background: rgba(255, 68, 0, 0.9);
+            border: 2px solid white;
+            border-radius: 50%;
+            z-index: 5000; display: none; 
+            transform: translate(-16px, -40px); /* วางปลายแหลมที่กึ่งกลางพอดี */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            pointer-events: none;
+        }
+        #crosshair::after {
+            content: ''; position: absolute; bottom: -10px; left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid rgba(255, 68, 0, 0.9);
+        }
+        #crosshair::before {
+            content: '📌'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 16px;
         }
 
         .pin-container { display: flex; flex-direction: column; align-items: center; pointer-events: none; position: relative; }
-        
-        /* หัวหมุดขาว */
         .white-circle { 
             background: white; width: 34px; height: 34px; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; 
             box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 2px solid white; 
             position: relative; font-size: 20px; z-index: 5;
         }
-        
-        /* ปลายแหลมที่ก้นหมุด */
         .white-circle::after { 
             content: ''; position: absolute; bottom: -8px; left: 50%; 
             transform: translateX(-50%); width: 0; height: 0; 
             border-left: 7px solid transparent; border-right: 7px solid transparent; 
             border-top: 10px solid white; 
         }
-
-        /* ป้ายชื่อ */
         .label-tag { 
             background: rgba(0,0,0,0.85); color: white; padding: 4px 12px; 
             border-radius: 12px; font-size: 10px; margin-top: 6px; 
@@ -66,7 +76,7 @@
 </head>
 <body>
 
-    <div id="crosshair">📌</div>
+    <div id="crosshair"></div>
     <div id="toast" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:white; padding: 8px 16px; border-radius:8px; z-index:8000; display:none; font-size:13px; text-align:center;"></div>
 
     <div id="loginOverlay" class="overlay"><div class="modal"><h3 style="margin-top:0">🔒 แอดมินล็อกอิน</h3><input type="text" id="adminU" placeholder="ID" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'"><input type="password" id="adminP" placeholder="Password" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'"><button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ยืนยัน</button><button onclick="document.getElementById('loginOverlay').style.display='none'" style="margin-top:10px; background:none; border:none; color:#999">ปิด</button></div></div>
@@ -149,14 +159,14 @@
                     const emo = p.type.includes('จราจร') ? '👮' : '🚨';
                     const html = `<div class="pin-container"><div class="white-circle">${emo}</div><div class="label-tag"><div style="font-weight:600; font-size:10px">${p.type}</div><div style="font-size:9px; opacity:0.9">(${p.reporter}) แจ้งเมื่อ ${time}</div></div></div>`;
                     
-                    // ปรับ iconAnchor ให้ปลายแหลม (Triangle Tip) อยู่ที่ระนาบ Y=42px (v44)
+                    // ปรับค่า iconAnchor ให้แม่นยำ (v45)
                     const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'dm', html, iconSize:[34, 42], iconAnchor:[17, 42] }) }).addTo(markerGroup);
                     m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>แจ้งเมื่อ ${time}</small><hr><button onclick="voteDown('${c.key}')" style="width:100%; padding:8px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${isAdmin?'❌ ลบทันที':`❌ ไม่อยู่แล้ว (${p.votes||0}/3)`}</button></div>`);
                 });
             });
         }
         function voteDown(k) { if(isAdmin) { P_REF.child(k).remove(); return; } let voted = JSON.parse(localStorage.getItem('udon_voted') || '[]'); if(voted.includes(k)) { showToast("⚠️ คุณโหวตด่านนี้ไปแล้วครับ"); return; } P_REF.child(k).transaction(c => { if(c) { c.votes = (c.votes||0)+1; if(c.votes >= 3) return null; } return c; }, (e, com) => { if(com) { voted.push(k); localStorage.setItem('udon_voted', JSON.stringify(voted)); showToast("✅ โหวตสำเร็จ!"); } }); }
-        function listenChat() { C_REF.limitToLast(50).on('value', snap => { const l = document.getElementById('chatList'); l.innerHTML = ""; snap.forEach(c => { const m = c.val(); const isMe = m.n === nick; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`; const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`; let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`; if(m.t) content += `<div>${m.t}</div>`; if(m.img) content += `<img src="${m.img}" class="chat-img">`; if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`; div.innerHTML = content; l.appendChild(div); }); l.scrollTop = l.scrollHeight; }); }
+        function listenChat() { C_REF.limitToLast(50).on('value', snap => { const l = document.getElementById('chatList'); l.innerHTML = ""; snap.forEach(c => { const m = c.val(); const isMe = m.n === nick; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`; const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`; let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`; if(m.t) content += `<div>${m.t}</div>`; if(m.img) content += `<img src="${m.img}" class="chat-img">`; if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`; div.innerHTML = content; l.scrollTop = l.scrollHeight; }); l.scrollTop = l.scrollHeight; }); }
         function setupPresence() { const p = PRES_REF.push(); db.ref(".info/connected").on("value", s=>{ if(s.val()) { p.onDisconnect().remove(); p.set({ name: nick }); } }); }
         function listenPresence() { PRES_REF.on('value', snap => { const list = document.getElementById('onlineList'); let count = 0; list.innerHTML = ""; snap.forEach(c => { count++; const tag = document.createElement('div'); tag.style="background:#f1f3f4; padding:3px 10px; border-radius:12px; font-weight:600; border:1px solid #ddd;"; tag.innerText = (c.val().name===nick?'คุณ: ':'')+c.val().name; list.appendChild(tag); }); document.getElementById('chatHeadline').innerText = `💬 แชทสด (ออนไลน์ ${count})`; }); }
         function saveNick() { const v = document.getElementById('nickInput').value.trim(); if(v) { nick = v; localStorage.setItem('chat_nick', v); document.getElementById('nickOverlay').style.display='none'; setupPresence(); } }
