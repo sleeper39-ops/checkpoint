@@ -10,10 +10,12 @@
     <style>
         :root { --primary: #1a73e8; --red: #d93025; --dark: #111; --accent: #fbbc04; }
         body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; z-index: 10; }
+        /* dvh = Dynamic Viewport Height ที่หักพื้นที่ browser UI บนมือถือออกแล้ว */
+        #map { height: 100dvh; height: 100vh; width: 100vw; z-index: 10; }
         .header { position: fixed; top: 12px; left: 12px; z-index: 1000; background: white; padding: 6px 14px; border-radius: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px; }
         .header h1 { margin: 0; font-size: 13px; color: #333; font-weight: 600; }
-        #crosshair { position: fixed; top: 50%; left: 50%; width: 32px; height: 42px; z-index: 5000; display: none; margin-top: -42px; margin-left: -16px; pointer-events: none; }
+        /* crosshair จะถูกจัดตำแหน่งด้วย JS (positionCrosshair) เพื่อให้ตรงกับ map.getSize() */
+        #crosshair { position: fixed; width: 32px; height: 42px; z-index: 5000; display: none; pointer-events: none; }
         .ch-pin { width: 32px; height: 32px; background: rgba(255, 68, 0, 0.95); border: 2px solid white; border-radius: 50%; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
         .ch-pin::after { content: ''; position: absolute; bottom: -10px; left: 50%; margin-left: -8px; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 12px solid rgba(255, 68, 0, 0.95); }
         .ch-dot { position: absolute; bottom: -12px; left: 50%; width: 4px; height: 4px; background: red; border-radius: 50%; margin-left: -2px; box-shadow: 0 0 5px red; }
