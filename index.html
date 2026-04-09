@@ -34,8 +34,11 @@
         
         .bottom-nav { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 3000; display: flex; gap: 10px; width: 92%; max-width: 450px; transition: 0.4s; }
         .bottom-nav.hide { bottom: -100px; opacity: 0; }
-        .btn { flex: 1; padding: 16px; border: none; border-radius: 18px; font-weight: 800; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Kanit'; cursor: pointer; }
+        .btn { flex: 1; padding: 16px; border: none; border-radius: 18px; font-weight: 800; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Kanit'; cursor: pointer; position: relative; }
         
+        /* แจ้งเตือนแชท (v49) */
+        #chatBadge { position: absolute; top: 10px; right: 15px; background: var(--red); color: white; font-size: 10px; min-width: 18px; height: 18px; border-radius: 10px; display: none; align-items: center; justify-content: center; border: 2.5px solid white; font-weight: bold; }
+
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9200; display: none; align-items: center; justify-content: center; }
         .modal { background: white; padding: 25px; border-radius: 24px; width: 260px; text-align: center; }
         #imgQueueArea { display: none; padding: 10px 20px; background: #fefefe; border-top: 1px solid #eee; align-items: center; gap: 15px; }
@@ -75,7 +78,16 @@
         </div>
     </div>
 
-    <div class="bottom-nav"><button class="btn" style="background:#333; color:white;" onclick="toggleChat()"><i data-lucide="message-square" style="width:18px"></i> แชท</button><button class="btn" id="startBtn" style="background:var(--primary); color:white" onclick="startSel()">📌 แจ้งด่าน</button><button class="btn" id="confirmPosBtn" style="background:var(--accent); color:black; display:none" onclick="confPos()">📌 ยืนยันพิกัด</button><button class="btn" onclick="location.reload()" style="flex:0.4"><i data-lucide="rotate-cw" style="width:18px"></i></button></div>
+    <div class="bottom-nav">
+        <button class="btn" style="background:#333; color:white;" onclick="toggleChat()">
+            <i data-lucide="message-square" style="width:18px"></i> แชท
+            <span id="chatBadge"></span>
+        </button>
+        <button class="btn" id="startBtn" style="background:var(--primary); color:white" onclick="startSel()">📌 แจ้งด่าน</button>
+        <button class="btn" id="confirmPosBtn" style="background:var(--accent); color:black; display:none" onclick="confPos()">📌 ยืนยันพิกัด</button>
+        <button class="btn" onclick="location.reload()" style="flex:0.4"><i data-lucide="rotate-cw" style="width:18px"></i></button>
+    </div>
+    
     <div id="selector"><h3 style="margin:0; font-size:20px">📌 เลือกประเภทด่าน</h3><div style="display:flex; justify-content:center; gap:15px; margin-top: 30px; width: 100%;"><button onclick="onSubmit('👮 ด่านจราจร')" style="flex:1; max-width:160px; padding:25px; background:#1a73e8; border:none; border-radius:22px; color:white; font-weight:bold; font-family:'Kanit'">👮 จราจร</button><button onclick="onSubmit('🚨 ด่านเป่า')" style="flex:1; max-width:160px; padding:25px; background:#d93025; border:none; border-radius:22px; color:white; font-weight:bold; font-family:'Kanit'">🚨 ด่านเป่า</button></div><button onclick="cancelAndHide()" style="margin-top:35px; border:none; background:none; color:#bbb; font-family:'Kanit'; font-size:15px">ยกเลิก (เปลี่ยนพิกัด)</button><button onclick="cancelAll()" style="margin-top:10px; border:none; background:none; color:red; font-family:'Kanit'; font-size:13px; display:block; width:100%">ปิดหน้านี้</button></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -86,6 +98,7 @@
         const P_REF = db.ref('points'); const C_REF = db.ref('chat'); const PRES_REF = db.ref('presence');
         let map, markerGroup, nick = localStorage.getItem('chat_nick'), isAdmin = sessionStorage.getItem('isAdmin') === 'true';
         let pendingFile = null; let activeLL = null;
+        let isChatOpen = false; let unreadCount = 0; let firstLoad = true;
 
         window.onload = () => {
             map = L.map('map', { zoomControl:false, attributionControl:false }).setView([17.4138, 102.7872], 14);
@@ -98,50 +111,56 @@
         function toggleChat() { 
             const d = document.getElementById('chatDrawer'); const nav = document.querySelector('.bottom-nav');
             d.classList.toggle('active'); nav.classList.toggle('hide'); 
+            isChatOpen = d.classList.contains('active');
+            if(isChatOpen) { unreadCount = 0; updateBadge(); }
         }
 
-        // --- Core Logic ---
+        function updateBadge() {
+            const b = document.getElementById('chatBadge');
+            if(unreadCount > 0) { b.innerText = unreadCount; b.style.display = 'flex'; }
+            else { b.style.display = 'none'; }
+        }
+
+        // --- Core ---
         function startSel() { document.getElementById('crosshair').style.display = 'block'; document.getElementById('startBtn').style.display = 'none'; document.getElementById('confirmPosBtn').style.display = 'flex'; }
         function confPos() { activeLL = map.getCenter(); document.getElementById('crosshair').style.display = 'none'; document.getElementById('confirmPosBtn').style.display = 'none'; document.getElementById('selector').style.display = 'block'; }
         function cancelAndHide() { document.getElementById('selector').style.display='none'; document.getElementById('crosshair').style.display='block'; document.getElementById('confirmPosBtn').style.display='flex'; }
         function cancelAll() { document.getElementById('crosshair').style.display='none'; document.getElementById('selector').style.display='none'; document.getElementById('confirmPosBtn').style.display='none'; document.getElementById('startBtn').style.display='flex'; }
         function onSubmit(type) { if(!activeLL) activeLL = map.getCenter(); P_REF.push({ lat: activeLL.lat, lng: activeLL.lng, type, createdAt: firebase.database.ServerValue.TIMESTAMP, votes: 0, reporter: nick }); C_REF.push({ n: '📢 ระบบ', t: `พบ ${type} (โดย ${nick})`, ts: firebase.database.ServerValue.TIMESTAMP }); cancelAll(); showToast("✅ แจ้งด่านสำเร็จ!"); }
-        
-        function handleFileQueue(input) { 
-            const f = input.files[0]; if(!f) return; pendingFile = f;
-            const r = new FileReader(); r.onload = e => { document.getElementById('imgQueuePreview').src = e.target.result; document.getElementById('imgQueueArea').style.display='flex'; }; r.readAsDataURL(f);
-        }
+        function handleFileQueue(input) { const f = input.files[0]; if(!f) return; pendingFile = f; const r = new FileReader(); r.onload = e => { document.getElementById('imgQueuePreview').src = e.target.result; document.getElementById('imgQueueArea').style.display='flex'; }; r.readAsDataURL(f); }
         function clearQueue() { pendingFile = null; document.getElementById('imgInput').value = ""; document.getElementById('imgQueueArea').style.display = 'none'; }
-        
-        async function sendMsg() {
-            const mInput = document.getElementById('msgInput'); const msg = mInput.value.trim(); if(!nick || (!msg && !pendingFile)) return;
-            const sBtn = document.getElementById('sendBtn'); sBtn.disabled = true; sBtn.style.opacity = '0.5';
-            let imgUrl = "";
-            if(pendingFile) { showToast("⏳ กำลังส่งรูป..."); try { const f = new FormData(); f.append('image', pendingFile); const r = await fetch(`https://api.imgbb.com/1/upload?key=${_0x1.i1}`, { method:'POST', body:f }); const d = await r.json(); if(d.success) imgUrl = d.data.url; } catch(e) {} }
-            C_REF.push({ n: nick, t: msg, img: imgUrl, ts: firebase.database.ServerValue.TIMESTAMP });
-            mInput.value = ""; clearQueue(); sBtn.disabled = false; sBtn.style.opacity = '1';
-        }
+        async function sendMsg() { const mInput = document.getElementById('msgInput'); const msg = mInput.value.trim(); if(!nick || (!msg && !pendingFile)) return; const sBtn = document.getElementById('sendBtn'); sBtn.disabled = true; sBtn.style.opacity = '0.5'; let imgUrl = ""; if(pendingFile) { showToast("⏳ กำลังส่งรูป..."); try { const f = new FormData(); f.append('image', pendingFile); const r = await fetch(`https://api.imgbb.com/1/upload?key=${_0x1.i1}`, { method:'POST', body:f }); const d = await r.json(); if(d.success) imgUrl = d.data.url; } catch(e) {} } C_REF.push({ n: nick, t: msg, img: imgUrl, ts: firebase.database.ServerValue.TIMESTAMP }); mInput.value = ""; clearQueue(); sBtn.disabled = false; sBtn.style.opacity = '1'; }
 
-        function listenPoints() {
-            P_REF.on('value', snap => {
-                markerGroup.clearLayers();
+        function listenChat() {
+            C_REF.limitToLast(50).on('value', snap => {
+                const l = document.getElementById('chatList'); l.innerHTML = "";
+                let msgs = [];
                 snap.forEach(c => {
-                    const p = c.val(); if(Date.now() - p.createdAt > 10800000) { c.ref.remove(); return; }
-                    const d = new Date(p.createdAt); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
-                    const emo = p.type.includes('จราจร') ? '👮' : '🚨';
-                    const html = `<div class="dm-wrapper"><div class="white-circle">${emo}</div><div class="label-tag"><div style="font-weight:600">${p.type}</div><div>(${p.reporter}) แจ้งเมื่อ ${time}</div></div></div>`;
-                    const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'custom-pin', html: html, iconSize:[34, 42], iconAnchor:[17, 42] }) }).addTo(markerGroup);
-                    m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>แจ้งเมื่อ ${time}</small><hr><button onclick="voteDown('${c.key}')" style="width:100%; padding:8px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${isAdmin?'❌ ลบทันที':`❌ ไม่อยู่แล้ว (${p.votes||0}/3)`}</button></div>`);
+                    const m = c.val(); msgs.push(m);
+                    const isMe = m.n === nick; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+                    const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`;
+                    let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`;
+                    if(m.t) content += `<div>${m.t}</div>`;
+                    if(m.img) content += `<img src="${m.img}" class="chat-img">`;
+                    if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`;
+                    div.innerHTML = content; l.appendChild(div);
                 });
+                l.scrollTop = l.scrollHeight;
+
+                // ตรวจสอบข้อความใหม่ (v49)
+                if(!firstLoad && !isChatOpen && msgs.length > 0) {
+                    unreadCount++; updateBadge();
+                }
+                firstLoad = false;
             });
         }
 
+        function listenPoints() { P_REF.on('value', snap => { markerGroup.clearLayers(); snap.forEach(c => { const p = c.val(); if(Date.now() - p.createdAt > 10800000) { c.ref.remove(); return; } const d = new Date(p.createdAt); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`; const emo = p.type.includes('จราจร') ? '👮' : '🚨'; const html = `<div class="dm-wrapper"><div class="white-circle">${emo}</div><div class="label-tag"><div style="font-weight:600">${p.type}</div><div>(${p.reporter}) แจ้งเมื่อ ${time}</div></div></div>`; const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'custom-pin', html: html, iconSize:[34, 42], iconAnchor:[17, 42] }) }).addTo(markerGroup); m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>แจ้งเมื่อ ${time}</small><hr><button onclick="voteDown('${c.key}')" style="width:100%; padding:8px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${isAdmin?'❌ ลบทันที':`❌ ไม่อยู่แล้ว (${p.votes||0}/3)`}</button></div>`); }); }); }
         function handleAdminClick() { if(isAdmin) { if(confirm("ออกจากแอดมิน?")) doLogout(); } else document.getElementById('loginOverlay').style.display='flex'; }
         function doLogin() { if(document.getElementById('adminU').value === _0x1.a1 && document.getElementById('adminP').value === _0x1.a2) { isAdmin=true; sessionStorage.setItem('isAdmin','true'); document.getElementById('loginOverlay').style.display='none'; updateAdminUI(true); } else alert("Error"); }
         function doLogout() { isAdmin=false; sessionStorage.setItem('isAdmin','false'); updateAdminUI(false); }
         function updateAdminUI(show) { document.getElementById('adminIcon').style.display = show ? 'block' : 'none'; document.getElementById('userIcon').style.display = show ? 'none' : 'block'; document.getElementById('clearChatBtn').style.display = show ? 'inline-block' : 'none'; listenChat(); listenPoints(); }
         function voteDown(k) { if(isAdmin) { P_REF.child(k).remove(); return; } let voted = JSON.parse(localStorage.getItem('udon_voted') || '[]'); if(voted.includes(k)) { showToast("⚠️ คุณโหวตด่านนี้ไปแล้วครับ"); return; } P_REF.child(k).transaction(c => { if(c) { c.votes = (c.votes||0)+1; if(c.votes >= 3) return null; } return c; }, (e, com) => { if(com) { voted.push(k); localStorage.setItem('udon_voted', JSON.stringify(voted)); showToast("✅ โหวตสำเร็จ!"); } }); }
-        function listenChat() { C_REF.limitToLast(50).on('value', snap => { const l = document.getElementById('chatList'); l.innerHTML = ""; snap.forEach(c => { const m = c.val(); const isMe = m.n === nick; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`; const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`; let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`; if(m.t) content += `<div>${m.t}</div>`; if(m.img) content += `<img src="${m.img}" class="chat-img">`; if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`; div.innerHTML = content; l.appendChild(div); }); l.scrollTop = l.scrollHeight; }); }
         function setupPresence() { const p = PRES_REF.push(); db.ref(".info/connected").on("value", s=>{ if(s.val()) { p.onDisconnect().remove(); p.set({ name: nick }); } }); }
         function listenPresence() { PRES_REF.on('value', snap => { const list = document.getElementById('onlineList'); let count = 0; list.innerHTML = ""; snap.forEach(c => { count++; const tag = document.createElement('div'); tag.style="background:#f1f3f4; padding:3px 10px; border-radius:12px; font-weight:600; border:1px solid #ddd;"; tag.innerText = (c.val().name===nick?'คุณ: ':'')+c.val().name; list.appendChild(tag); }); document.getElementById('chatHeadline').innerText = `💬 แชทสด (ออนไลน์ ${count})`; }); }
         function saveNick() { const v = document.getElementById('nickInput').value.trim(); if(v) { nick = v; localStorage.setItem('chat_nick', v); document.getElementById('nickOverlay').style.display='none'; setupPresence(); } }
