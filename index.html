@@ -3,213 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - Fix v6</title>
+    <title>Udon Checkpoint - Accuracy v7</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #1a73e8; --dark: #202124; --accent: #fbbc04; }
+        :root { --primary: #1a73e8; --red: #d93025; --dark: #202124; }
         body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; z-index: 10; }
         
-        /* Marker Styles */
-        .custom-marker {
-            display: flex; align-items: center; justify-content: center;
-            background: white; border: 2.5px solid #fff; border-radius: 50%;
-            width: 46px !important; height: 46px !important; font-size: 28px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            animation: bounce 0.6s infinite alternate ease-in-out;
-            pointer-events: auto !important; z-index: 1000 !important;
-        }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-7px); } }
-
-        /* Crosshair in center */
+        /* Precision Crosshair */
         #crosshair {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -100%);
-            z-index: 500; pointer-events: none; color: #ff1e1e; font-size: 40px; display: none;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 5000; pointer-events: none; display: none;
+            width: 30px; height: 30px;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: #ff0000;
+        }
+        #crosshair::before { top: 14px; left: 0; width: 100%; height: 2px; } /* Horizontal line */
+        #crosshair::after { left: 14px; top: 0; width: 2px; height: 100%; } /* Vertical line */
+        #crosshair-dot {
+            position: absolute; top: 12px; left: 12px; width: 6px; height: 6px;
+            background: #ff0000; border-radius: 50%; border: 1px solid white;
         }
 
-        /* UI Overlays */
+        /* Pin Style Icon (Teardrop shape) */
+        .pin-marker {
+            background: white; border-radius: 50% 50% 50% 0;
+            width: 44px !important; height: 44px !important;
+            display: flex; align-items: center; justify-content: center;
+            transform: rotate(-45deg); /* Make it a teardrop pointing down-left */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            border: 3px solid white;
+            z-index: 1000 !important;
+        }
+        .pin-content {
+            transform: rotate(45deg); /* Counter-rotate emoji to be upright */
+            font-size: 26px;
+        }
+
+        /* Header & UI */
         .header {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; background: white; padding: 10px 20px; border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid #ddd;
-            display: flex; align-items: center; gap: 10px; min-width: 250px;
+            z-index: 1000; background: white; padding: 10px 20px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px;
         }
-        .header h1 { margin: 0; font-size: 15px; color: #333; }
+        .header h1 { margin: 0; font-size: 14px; color: #202124; }
 
-        /* Selection Panel */
+        /* Selector Panel */
         #selector {
-            position: fixed; bottom: 0; left: 0; width: 100%; padding: 25px 20px 40px;
-            background: white; border-radius: 30px 30px 0 0; z-index: 2000;
-            display: none; box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
-            text-align: center; transform: translateY(100%); transition: 0.3s ease;
+            position: fixed; bottom: 0; left: 0; width: 100%; padding: 30px 20px 40px;
+            background: white; border-radius: 24px 24px 0 0; z-index: 6000;
+            display: none; box-shadow: 0 -8px 25px rgba(0,0,0,0.25); text-align: center;
         }
-        #selector.active { transform: translateY(0); display: block; }
-        .choice-row { display: flex; gap: 15px; margin-top: 20px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .choice-btn {
-            flex: 1; padding: 20px; border: none; border-radius: 20px; color: white;
+            padding: 20px; border: none; border-radius: 16px; color: white;
             font-size: 18px; font-weight: bold; cursor: pointer; font-family: 'Kanit';
         }
 
         .bottom-nav {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; gap: 15px; width: 90%; max-width: 400px;
+            z-index: 1000; display: flex; gap: 12px; width: 90%; max-width: 400px;
         }
         .btn {
-            flex: 1; padding: 16px; border: none; border-radius: 18px;
+            flex: 1; padding: 16px; border: none; border-radius: 14px;
             font-weight: 600; font-size: 17px; background: white; color: #333;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .btn-main { background: var(--primary); color: white; }
-        .btn-main.active { background: var(--accent); color: black; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-confirm { background: #fbbc04; color: black; font-weight: 800; display: none; }
 
-        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 10px 20px; border-radius: 10px; z-index: 3000; display: none; }
+        #toast { position: fixed; top: 75px; left: 50%; transform: translateX(-50%); background: #323336; color: white; padding: 10px 20px; border-radius: 10px; z-index: 5000; display: none; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div id="crosshair">📍</div>
+    <div id="crosshair"><div id="crosshair-dot"></div></div>
     <div id="toast"></div>
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="20">
-        <h1 id="statusText">รายงานด่านอุดร (v6)</h1>
+        <h1>รายงานด่านอุดร (เน้นความแม่นยำ)</h1>
     </div>
 
     <div id="map"></div>
 
     <div id="selector">
-        <h2 style="margin:0; font-size: 18px">📌 ขั้นตอนสุดท้าย: จุดนี้พบด่านอะไร?</h2>
-        <div class="choice-row">
-            <button class="choice-btn" style="background: #1a73e8" onclick="confirmPoint('👮 ด่านจราจร')">👮 จราจร</button>
-            <button class="choice-btn" style="background: #d93025" onclick="confirmPoint('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
+        <h2 style="margin:0; font-size:18px">ด่านที่พบเป็นประเภทไหน?</h2>
+        <div class="btn-grid">
+            <button class="choice-btn" style="background: #1a73e8" onclick="saveResult('👮 ด่านจราจร')">👮 จราจร</button>
+            <button class="choice-btn" style="background: #d93025" onclick="saveResult('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
         </div>
-        <button onclick="cancelSelection()" style="margin-top:20px; border:none; background:none; color:#777; font-family:'Kanit'">ยกเลิก</button>
+        <button onclick="closeSelector()" style="margin-top:20px; border:none; background:none; color:#999; font-family:'Kanit'">ยกเลิก</button>
     </div>
 
     <div class="bottom-nav">
-        <button class="btn" onclick="location.reload()"><i data-lucide="refresh-cw"></i> รีเฟรช</button>
-        <button class="btn btn-main" id="reportBtn" onclick="startSelection()">📌 แจ้งพบด่าน</button>
+        <button class="btn" id="refreshBtn" onclick="location.reload()"><i data-lucide="refresh-cw"></i> รีเฟรช</button>
+        <button class="btn btn-primary" id="startBtn" onclick="enterSelectMode()">📌 แจ้งพบด่าน</button>
+        <button class="btn btn-confirm" id="confirmPosBtn" onclick="onPosConfirmed()">✅ ยืนยันพิกัดกากบาท</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const STORAGE_ID = 'udon_v6_final';
+        const STORAGE_KEY = 'udon_v7_precision';
         const EXPIRED = 3 * 60 * 60 * 1000;
-        let map, markerGroup, currentMode = 'view';
+        let map, markerGroup;
 
-        // --- Init ---
-        function initApp() {
+        // --- Setup ---
+        window.onload = () => {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
             L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
             
             markerGroup = L.layerGroup().addTo(map);
-            loadAndRender();
+            renderUI();
             
-            // พยายามหาตำแหน่งเรา
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     const { latitude, longitude } = pos.coords;
-                    L.circleMarker([latitude, longitude], { radius: 8, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 0.8 }).addTo(map);
+                    L.circleMarker([latitude, longitude], { radius: 7, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map);
                     map.panTo([latitude, longitude]);
                 }, null, { enableHighAccuracy: true });
             }
-
-            // จัดการคลิกแผนที่
-            map.on('click', onMapClick);
-            
             lucide.createIcons();
-        }
+        };
 
-        function loadAndRender() {
+        function renderUI() {
             markerGroup.clearLayers();
             const now = Date.now();
-            let data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
+            let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
             data = data.filter(p => (now - p.id) < EXPIRED);
-            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
             data.forEach(p => {
                 const icon = L.divIcon({
-                    className: 'custom-marker',
-                    html: p.type.includes('จราจร') ? '👮' : '🚨',
-                    iconSize: [46, 46], iconAnchor: [23, 23]
+                    className: 'pin-marker',
+                    html: `<div class="pin-content">${p.type.includes('จราจร') ? '👮' : '🚨'}</div>`,
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 44] // Point is at bottom-center [x/2, y]
                 });
                 const m = L.marker([p.lat, p.lng], { icon }).addTo(markerGroup);
-                m.bindPopup(`<b>${p.type}</b><br>แจ้งเมื่อ ${Math.floor((now-p.id)/60000)} นาทีที่แล้ว<br><button onclick="deleteMe(${p.id})" style="margin-top:10px; width:100%">ไม่อยู่แล้ว</button>`);
+                m.bindPopup(`<b>${p.type}</b><br><small>แจ้งเมื่อ ${Math.floor((now-p.id)/1000/60)} นาทีที่แล้ว</small><br><button onclick="removePoint(${p.id})" style="margin-top:10px; width:100%">ไม่อยู่แล้ว</button>`);
             });
         }
 
-        function deleteMe(id) {
-            let data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
+        function removePoint(id) {
+            let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
             data = data.filter(p => p.id !== id);
-            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
-            loadAndRender();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            renderUI();
         }
 
-        // --- Workflow ---
-        function startSelection() {
-            currentMode = 'select';
+        // --- Interaction ---
+        function enterSelectMode() {
             document.getElementById('crosshair').style.display = 'block';
-            document.getElementById('reportBtn').classList.add('active');
-            document.getElementById('reportBtn').innerHTML = '✅ ยืนยันพิกัดนี้';
-            document.getElementById('reportBtn').onclick = finalizePosition;
-            showToast("📍 เลื่อนแผนที่ให้หมุดสีแดงตรงกับจุดที่พบด่าน");
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('refreshBtn').style.display = 'none';
+            document.getElementById('confirmPosBtn').style.display = 'flex';
+            showToast("📍 เลื่อนกากบาทสีแดงให้ตรงกับจุดที่พบด่าน");
         }
 
-        function finalizePosition() {
-            const center = map.getCenter();
-            openColorSelector(center);
+        function onPosConfirmed() {
+            window.finalLatLng = map.getCenter();
+            document.getElementById('selector').style.display = 'block';
         }
 
-        function onMapClick(e) {
-            if (currentMode === 'select') {
-                openColorSelector(e.latlng);
-            }
-        }
-
-        function openColorSelector(latlng) {
-            window.activeLatLng = latlng;
-            const selector = document.getElementById('selector');
-            selector.style.display = 'block';
-            setTimeout(() => selector.classList.add('active'), 10);
-        }
-
-        function confirmPoint(type) {
-            const latlng = window.activeLatLng;
-            const data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
-            data.push({ id: Date.now(), lat: latlng.lat, lng: latlng.lng, type, votes: 0 });
-            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
+        function saveResult(type) {
+            const latlng = window.finalLatLng;
+            const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            data.push({ id: Date.now(), lat: latlng.lat, lng: latlng.lng, type });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             
-            cancelSelection();
-            loadAndRender();
-            showToast("✨ บันทึกข้อมูลเรียบร้อย!");
+            closeSelector();
+            renderUI();
+            showToast("✅ บันทึกพิกัดแม่นยำเรียบร้อย");
         }
 
-        function cancelSelection() {
-            currentMode = 'view';
+        function closeSelector() {
+            document.getElementById('selector').style.display = 'none';
             document.getElementById('crosshair').style.display = 'none';
-            document.getElementById('selector').classList.remove('active');
-            setTimeout(() => document.getElementById('selector').style.display = 'none', 300);
-            
-            const btn = document.getElementById('reportBtn');
-            btn.classList.remove('active');
-            btn.innerHTML = '📌 แจ้งพบด่าน';
-            btn.onclick = startSelection;
+            document.getElementById('startBtn').style.display = 'flex';
+            document.getElementById('refreshBtn').style.display = 'flex';
+            document.getElementById('confirmPosBtn').style.display = 'none';
         }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerHTML = msg;
             t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 4000);
+            setTimeout(() => t.style.display = 'none', 3500);
         }
-
-        function vote(id) { 
-            // ระบบโหวตตัดออกชั่วคราวเพื่อความง่าย
-        }
-
-        window.onload = initApp;
     </script>
 </body>
 </html>
