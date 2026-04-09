@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - v35 Vote Lock</title>
+    <title>Udon Checkpoint - v36 Chat Compact</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -21,6 +21,11 @@
         #chatDrawer { position: fixed; bottom: -65vh; left: 0; width: 100%; height: 60vh; background: white; z-index: 2000; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.3); transition: 0.4s; display: flex; flex-direction: column; }
         #chatDrawer.active { bottom: 0; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 14px; position: relative; }
+        
+        /* ปรับขนาดรูปในแชทให้เล็กลงเหมือนเดิม (v36) */
+        .chat-img { width: 100%; max-width: 180px; border-radius: 10px; margin-top: 5px; display: block; pointer-events: none; }
+
         .bottom-nav { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; width: 92%; max-width: 450px; transition: 0.3s; }
         .btn { flex: 1; padding: 16px; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Kanit'; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9200; display: none; align-items: center; justify-content: center; }
@@ -54,7 +59,7 @@
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="16">
-        <h1>Udon Checkpoint (Boss v35)</h1>
+        <h1>Udon Checkpoint (Boss v36)</h1>
         <button id="clearChatBtn" style="display:none; background:red; color:white; padding:4px 10px; border:none; border-radius:20px; font-size:10px; margin-left:8px" onclick="clearAllChat()">ล้างแชท</button>
     </div>
 
@@ -98,7 +103,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- Obfuscated Data Section ---
+        // --- 🤫 Obfuscated Data Section ---
         const _0x1 = { f1: atob("QUl6YVN5RDk4T213VXlzZ1FkVW1GZTBWOEVhdm9PNGZDVmx6VVFz"), f2: atob("dWRjcC1kYWRlOC5maXJlYmFzZWFwcC5jb20="), f3: atob("dWRjcC1kYWRlOA=="), f4: atob("aHR0cHM6Ly91ZGNwLWRhZGU4LWRlZmF1bHQtcnRkYi5hc2lhLXNvdXRoZWFzdDEuZmlyZWJhc2VkYXRhYmFzZS5hcHA="), i1: atob("OWRkODJjM2UwOTk4M2M2M2VjN2NiYWRiMmQ3Y2YxYmQ="), a1: atob("YWRtaW4="), a2: atob("YWRtaW4yMg==") };
         firebase.initializeApp({ apiKey: _0x1.f1, authDomain: _0x1.f2, projectId: _0x1.f3, databaseURL: _0x1.f4 });
         const db = firebase.database();
@@ -132,30 +137,15 @@
             });
         }
 
-        // --- ระบบล็อกการโหวต (v35) ---
         function voteDown(k) {
             if(isAdmin) { P_REF.child(k).remove(); return; }
-            
-            // ตรวจสอบว่าเคยโหวตพิกัดนี้หรือยัง
             let voted = JSON.parse(localStorage.getItem('udon_voted') || '[]');
-            if(voted.includes(k)) {
-                showToast("⚠️ คุณโหวตด่านนี้ไปแล้วครับ");
-                return;
-            }
-
+            if(voted.includes(k)) { showToast("⚠️ คุณโหวตด่านนี้ไปแล้วครับ"); return; }
             P_REF.child(k).transaction(c => {
-                if(c) {
-                    c.votes = (c.votes||0)+1;
-                    if(c.votes >= 3) return null; // ลบเมื่อครบ 3
-                }
+                if(c) { c.votes = (c.votes||0)+1; if(c.votes >= 3) return null; }
                 return c;
             }, (error, committed) => {
-                if(committed) {
-                    // บันทึกว่าโหวตแล้วลงเครื่อง
-                    voted.push(k);
-                    localStorage.setItem('udon_voted', JSON.stringify(voted));
-                    showToast("✅ ขอบคุณสำหรับการตรวจสอบครับ");
-                }
+                if(committed) { voted.push(k); localStorage.setItem('udon_voted', JSON.stringify(voted)); showToast("✅ ขอบคุณสำหรับการตรวจสอบครับ"); }
             });
         }
 
@@ -164,10 +154,11 @@
             C_REF.limitToLast(50).on('value', snap => {
                 const l = document.getElementById('chatList'); l.innerHTML = "";
                 snap.forEach(c => {
-                    const m = c.val(); const isMe = m.n === nick; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+                    const m = c.val(); const isMe = m.n === nick; const id = c.key; const d = new Date(m.ts); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                     const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`;
                     let content = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n} · ${time}</small>`;
-                    if(m.t) content += `<div>${m.t}</div>`; if(m.img) content += `<img src="${m.img}" class="chat-img">`;
+                    if(m.t) content += `<div>${m.t}</div>`; 
+                    if(m.img) content += `<img src="${m.img}" class="chat-img">`;
                     if(isAdmin) content += `<button style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; width:20px; height:20px; border-radius:50%; font-size:10px" onclick="db.ref('chat/${c.key}').remove()">🗑️</button>`;
                     div.innerHTML = content; l.appendChild(div);
                 });
