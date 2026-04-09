@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint Report - ระบบแจ้งด่านอุดร</title>
+    <title>Udon Checkpoint - Google Maps View</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,7 +17,7 @@
             --warning: #ffa502;
             --info: #1e90ff;
             --dark: #1e272e;
-            --glass: rgba(0, 0, 0, 0.82);
+            --glass: rgba(0, 0, 0, 0.75);
         }
 
         body {
@@ -27,91 +27,91 @@
 
         #map { height: 100vh; width: 100vw; z-index: 1; }
 
-        /* Icon Animation */
+        /* Icon Style */
         .emoji-icon {
-            font-size: 34px; display: flex; align-items: center; justify-content: center;
-            filter: drop-shadow(0 2px 10px rgba(0,0,0,0.5));
-            animation: bounce 1s infinite alternate;
+            font-size: 36px; display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+            animation: bounce 0.8s infinite alternate ease-in-out;
         }
 
         @keyframes bounce {
             from { transform: translateY(0); }
-            to { transform: translateY(-6px); }
+            to { transform: translateY(-7px); }
         }
 
-        /* Header UI */
+        /* Header UI (Google Style) */
         .header {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; background: var(--glass); backdrop-filter: blur(10px);
-            padding: 8px 18px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.15);
-            display: flex; align-items: center; gap: 8px; color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            z-index: 1000; background: white; 
+            padding: 10px 20px; border-radius: 12px;
+            display: flex; align-items: center; gap: 10px; color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid #ddd;
+            width: fit-content; max-width: 90%;
         }
-        .header h1 { margin: 0; font-size: 14px; white-space: nowrap; }
+        .header h1 { margin: 0; font-size: 15px; font-weight: 600; color: #202124; }
 
         /* Selection Modal */
         #selectionModal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
             z-index: 9999; display: none; align-items: center; justify-content: center;
-            flex-direction: column; opacity: 0; transition: opacity 0.3s;
         }
 
         .modal-content {
-            background: #222; padding: 25px; border-radius: 30px;
-            width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; gap: 15px; border: 1px solid rgba(255,255,255,0.1);
+            background: white; padding: 25px; border-radius: 20px;
+            width: 85%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 15px;
         }
 
-        .modal-content h2 { color: white; text-align: center; margin: 0 0 10px 0; font-size: 18px; }
+        .modal-content h2 { color: #333; text-align: center; margin: 0; font-size: 18px; }
 
         .choice-btn {
-            padding: 20px; border: none; border-radius: 20px; cursor: pointer;
+            padding: 18px; border: none; border-radius: 15px; cursor: pointer;
             font-family: 'Kanit', sans-serif; font-size: 20px; font-weight: 600;
             display: flex; align-items: center; justify-content: center; gap: 12px;
-            color: white; transition: transform 0.2s;
+            color: white; transition: 0.2s;
         }
-        .choice-btn:active { transform: scale(0.95); }
-        .btn-traffic { background: linear-gradient(135deg, #1e90ff, #00d2ff); }
-        .btn-checkpoint { background: linear-gradient(135deg, #ff4757, #ff6b81); }
-        .btn-cancel { background: transparent; color: #aaa; font-size: 14px; padding: 10px; }
+        .choice-btn:active { transform: scale(0.96); }
+        .btn-traffic { background: #1a73e8; } /* Google Blue */
+        .btn-checkpoint { background: #d93025; } /* Google Red */
+        .btn-cancel { background: #f1f3f4; color: #5f6368; font-size: 15px; padding: 10px; border-radius: 10px; }
 
         /* Bottom Nav */
         .bottom-nav {
-            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; gap: 12px; width: 90%; max-width: 400px;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; gap: 12px; width: 92%; max-width: 420px;
         }
 
         .btn {
-            flex: 1; padding: 16px; border: none; border-radius: 22px;
-            font-weight: 600; font-size: 17px; color: white; cursor: pointer;
+            flex: 1; padding: 15px; border: none; border-radius: 12px;
+            font-weight: 600; font-size: 16px; color: #1a73e8; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: 'Kanit', sans-serif;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-family: 'Kanit', sans-serif;
+            background: white; border: 1px solid #ddd;
         }
-        .btn-report { background: linear-gradient(135deg, #ff4757, #ff6b81); }
-        .btn-report.selecting { background: var(--warning); animation: pulse 1s infinite; }
-        .btn-refresh { background: #333; }
+        .btn-report { background: #1a73e8; color: white; border: none; }
+        .btn-report.selecting { background: #fbbc04; color: #000; animation: pulse 1s infinite; }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 188, 4, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(251, 188, 4, 0); }
         }
 
         /* Popup */
-        .leaflet-popup-content-wrapper { border-radius: 20px; background: rgba(255, 255, 255, 0.95); }
-        .popup-container { text-align: center; min-width: 180px; padding: 5px; }
-        .popup-title { font-weight: 600; font-size: 20px; color: var(--dark); display: block; }
-        .popup-time { font-size: 12px; color: #666; display: block; margin-bottom: 12px; }
-        .v-stats { display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
+        .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .popup-container { text-align: center; min-width: 190px; padding: 5px; }
+        .popup-title { font-weight: 600; font-size: 19px; color: #202124; display: block; }
+        .popup-time { font-size: 12px; color: #70757a; display: block; margin-bottom: 12px; }
+        .v-stats { display: flex; justify-content: space-around; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #3c4043; }
         .v-row { display: flex; gap: 8px; }
-        .v-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; color: white; cursor: pointer; font-family: 'Kanit', sans-serif; font-weight: bold; font-size: 14px; }
-        .vb-up { background: var(--success); }
-        .vb-down { background: var(--warning); }
+        .v-btn { flex: 1; padding: 10px; border: 1px solid #dadce0; border-radius: 8px; background: white; color: #1a73e8; cursor: pointer; font-family: 'Kanit', sans-serif; font-weight: 600; font-size: 13px; }
+        .v-btn:active { background: #f8f9fa; }
+        .vb-down { color: #d93025; }
 
         /* Toast & Loader */
-        #toast { position: fixed; top: 65px; left: 50%; transform: translateX(-50%); background: var(--warning); color: white; padding: 8px 20px; border-radius: 50px; z-index: 2000; display: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #323336; color: white; padding: 10px 20px; border-radius: 8px; z-index: 2000; display: none; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 35px; height: 35px; border: 3px solid #f3f3f3; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
@@ -120,33 +120,33 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <p style="margin-top:20px;">กำลังเตรียมแผนที่ดาวเทียม...</p>
+        <p style="margin-top:20px; color:#5f6368">เรียกข้อมูล Google Maps...</p>
     </div>
 
     <div id="selectionModal">
         <div class="modal-content">
-            <h2>🚨 เลือกประเภทด่าน</h2>
+            <h2 style="font-family:'Kanit'">🚨 เลือกประเภทที่พบ</h2>
             <button class="choice-btn btn-traffic" onclick="confirmReport('👮 ด่านจราจร')">👮 ด่านจราจร</button>
             <button class="choice-btn btn-checkpoint" onclick="confirmReport('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
             <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
         </div>
     </div>
 
-    <div id="toast">👆 แตะเลือกจุดที่พบด่านบนแผนที่</div>
+    <div id="toast">📍 แตะตำแหน่งบนแผนที่เพื่อแจ้งด่าน</div>
 
     <div class="header">
-        <span>🛰️</span>
-        <h1>รายงานด่านอุดร (3 ชม.)</h1>
+        <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="20" height="20">
+        <h1>ระบบรายงานด่านอุดร (Google View)</h1>
     </div>
 
     <div id="map"></div>
 
     <div class="bottom-nav">
         <button class="btn btn-refresh" onclick="location.reload()">
-            <i data-lucide="rotate-cw"></i> อัปเดต
+            <i data-lucide="rotate-cw" style="width:18px"></i> รีเฟรช
         </button>
         <button class="btn btn-report" id="reportBtn" onclick="toggleSelectionMode()">
-             📌 แจ้งพบด่าน
+             <i data-lucide="map-pin" style="width:18px"></i> แจ้งพบด่าน
         </button>
     </div>
 
@@ -157,6 +157,15 @@
         const DELETE_VOTES = 5;
         let isSelectingLocation = false;
         let selectedLatLng = null;
+
+        // --- Map ---
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
+        
+        // ใช้ Google Maps Hybrid (Satellite + Road Labels)
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        }).addTo(map);
 
         // --- Data ---
         function getCheckpoints() {
@@ -184,7 +193,7 @@
                     list[idx].down += 1;
                     if (list[idx].down >= DELETE_VOTES) {
                         list.splice(idx, 1);
-                        alert("ด่านถูกลบแล้วเนื่องจากไม่มีอยู่จริงครบ 5 คน");
+                        alert("ด่านถูกลบออกแล้ว");
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
                         location.reload(); return;
                     }
@@ -194,17 +203,12 @@
             }
         }
 
-        // --- Map ---
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { pane: 'shadowPane' }).addTo(map);
-
         function renderMarkers() {
             getCheckpoints().forEach(cp => {
                 const icon = L.divIcon({
                     className: 'emoji-icon',
                     html: cp.type.includes('จราจร') ? '👮' : '🚨',
-                    iconSize: [40, 40], iconAnchor: [20, 20]
+                    iconSize: [44, 44], iconAnchor: [22, 22]
                 });
                 const marker = L.marker([cp.lat, cp.lng], { icon }).addTo(map);
                 const timeAgo = Math.floor((Date.now() - cp.id) / 60000);
@@ -212,13 +216,13 @@
                 marker.bindPopup(`
                     <div class="popup-container">
                         <span class="popup-title">${cp.type}</span>
-                        <span class="popup-time">เมื่อ ${timeAgo} นาทีที่แล้ว</span>
+                        <span class="popup-time">แจ้งเมื่อ ${timeAgo} นาทีที่แล้ว</span>
                         <div class="v-stats">
-                            <span style="color:var(--success)">✅ ยังอยู่: ${cp.up}</span>
-                            <span style="color:var(--primary)">❌ ไม่อยู่: ${cp.down}/${DELETE_VOTES}</span>
+                            <span style="color:#1e8e3e">✅ ยังอยู่: ${cp.up}</span>
+                            <span style="color:#d93025">❌ ไม่อยู่: ${cp.down}/${DELETE_VOTES}</span>
                         </div>
                         <div class="v-row">
-                            <button class="v-btn vb-up" onclick="handleVote(${cp.id}, 'up')">ยังอยู่</button>
+                            <button class="v-btn" onclick="handleVote(${cp.id}, 'up')">ยังอยู่</button>
                             <button class="v-btn vb-down" onclick="handleVote(${cp.id}, 'down')">ไม่อยู่แล้ว</button>
                         </div>
                     </div>
@@ -236,18 +240,17 @@
                 btn.classList.add('selecting');
                 toast.style.display = 'block';
             } else {
-                btn.innerHTML = '📌 แจ้งพบด่าน';
+                btn.innerHTML = '<i data-lucide="map-pin" style="width:18px"></i> แจ้งพบด่าน';
                 btn.classList.remove('selecting');
                 toast.style.display = 'none';
+                lucide.createIcons();
             }
         }
 
         map.on('click', function (e) {
             if (isSelectingLocation) {
                 selectedLatLng = e.latlng;
-                const modal = document.getElementById('selectionModal');
-                modal.style.display = 'flex';
-                setTimeout(() => modal.style.opacity = '1', 10);
+                document.getElementById('selectionModal').style.display = 'flex';
             }
         });
 
@@ -259,12 +262,8 @@
         }
 
         function closeModal() {
-            const modal = document.getElementById('selectionModal');
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.style.display = 'none';
-                toggleSelectionMode();
-            }, 300);
+            document.getElementById('selectionModal').style.display = 'none';
+            toggleSelectionMode();
         }
 
         // --- Start ---
@@ -278,7 +277,9 @@
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
-                    L.circleMarker([pos.coords.latitude, pos.coords.longitude], { radius: 8, fillColor: "#3498db", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map);
+                    L.circleMarker([pos.coords.latitude, pos.coords.longitude], { 
+                        radius: 8, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 
+                    }).addTo(map);
                     map.panTo([pos.coords.latitude, pos.coords.longitude]);
                 }, null, { enableHighAccuracy: true });
             }
