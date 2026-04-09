@@ -1,278 +1,215 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - Google View</title>
-
+    <title>Udon Checkpoint - Fix v6</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        :root {
-            --primary: #1a73e8;
-            --danger: #d93025;
-            --success: #1e8e3e;
-            --warning: #fbbc04;
-            --dark: #202124;
-        }
-
-        body {
-            margin: 0; padding: 0; font-family: 'Kanit', sans-serif;
-            background-color: #000; overflow: hidden;
-        }
-
-        #map { height: 100vh; width: 100vw; z-index: 1; }
-
-        /* Marker Icon with White Circle Backround */
-        .emoji-icon {
+        :root { --primary: #1a73e8; --dark: #202124; --accent: #fbbc04; }
+        body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; z-index: 10; }
+        
+        /* Marker Styles */
+        .custom-marker {
             display: flex; align-items: center; justify-content: center;
-            background: white; border-radius: 50%; width: 44px !important; height: 44px !important;
-            font-size: 26px; box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-            border: 2px solid white; animation: bounce 0.8s infinite alternate ease-in-out;
+            background: white; border: 2.5px solid #fff; border-radius: 50%;
+            width: 46px !important; height: 46px !important; font-size: 28px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            animation: bounce 0.6s infinite alternate ease-in-out;
+            pointer-events: auto !important; z-index: 1000 !important;
+        }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+
+        /* Crosshair in center */
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -100%);
+            z-index: 500; pointer-events: none; color: #ff1e1e; font-size: 40px; display: none;
         }
 
-        @keyframes bounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(-5px); }
-        }
-
-        /* Header UI */
+        /* UI Overlays */
         .header {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; background: white; 
-            padding: 10px 18px; border-radius: 25px;
-            display: flex; align-items: center; gap: 8px; color: #333;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 1px solid #ddd;
-            width: fit-content; max-width: 90%;
+            z-index: 1000; background: white; padding: 10px 20px; border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid #ddd;
+            display: flex; align-items: center; gap: 10px; min-width: 250px;
         }
-        .header h1 { margin: 0; font-size: 14px; font-weight: 600; }
+        .header h1 { margin: 0; font-size: 15px; color: #333; }
 
-        /* Selection Modal */
-        #selectionModal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-            z-index: 10000; display: none; align-items: center; justify-content: center;
+        /* Selection Panel */
+        #selector {
+            position: fixed; bottom: 0; left: 0; width: 100%; padding: 25px 20px 40px;
+            background: white; border-radius: 30px 30px 0 0; z-index: 2000;
+            display: none; box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+            text-align: center; transform: translateY(100%); transition: 0.3s ease;
         }
-
-        .modal-content {
-            background: white; padding: 30px 20px; border-radius: 24px;
-            width: 85%; max-width: 340px; text-align: center;
-        }
-
-        .modal-content h2 { margin: 0 0 20px 0; font-size: 18px; color: #202124; }
-
-        .btn-stack { display: flex; flex-direction: column; gap: 12px; }
-
+        #selector.active { transform: translateY(0); display: block; }
+        .choice-row { display: flex; gap: 15px; margin-top: 20px; }
         .choice-btn {
-            padding: 18px; border: none; border-radius: 16px; cursor: pointer;
-            font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 600;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            color: white; transition: 0.2s;
+            flex: 1; padding: 20px; border: none; border-radius: 20px; color: white;
+            font-size: 18px; font-weight: bold; cursor: pointer; font-family: 'Kanit';
         }
-        .btn-traffic { background: #1a73e8; }
-        .btn-checkpoint { background: #d93025; }
-        .btn-cancel { background: #eee; color: #5f6368; font-size: 14px; margin-top: 10px; }
 
-        /* Bottom Controls */
         .bottom-nav {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; gap: 12px; width: 90%; max-width: 400px;
+            z-index: 1000; display: flex; gap: 15px; width: 90%; max-width: 400px;
         }
-
         .btn {
-            flex: 1; padding: 15px; border-radius: 14px; border: none;
-            font-weight: 600; font-size: 16px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Kanit', sans-serif;
-            background: white; color: #3c4043;
+            flex: 1; padding: 16px; border: none; border-radius: 18px;
+            font-weight: 600; font-size: 17px; background: white; color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        .btn-report { background: #1a73e8; color: white; }
-        .btn-report.active { background: #fbbc04; color: black; box-shadow: 0 0 20px rgba(251,188,4,0.5); }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-main.active { background: var(--accent); color: black; }
 
-        /* Popup */
-        .popup-container { text-align: center; min-width: 180px; }
-        .popup-title { font-weight: 600; font-size: 18px; color: #202124; display: block; }
-        .v-stats { display: flex; justify-content: space-around; margin: 10px 0; font-size: 13px; font-weight: 600; }
-        .v-row { display: flex; gap: 8px; }
-        .v-btn { flex: 1; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; background: white; font-family: 'Kanit', sans-serif; cursor: pointer; font-size: 13px; }
-
-        /* Toast */
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #323336; color: white; padding: 10px 20px; border-radius: 12px; z-index: 2000; display: none; font-size: 14px; }
-        
-        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-        .spinner { width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid #1a73e8; border-radius:50%; animation:spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 10px 20px; border-radius: 10px; z-index: 3000; display: none; }
     </style>
 </head>
-
 <body>
 
-    <div id="loader">
-        <div class="spinner"></div>
-        <p style="margin-top:20px; color:#5f6368">ยินดีต้อนรับสู่ระบบรายงานด่าน...</p>
-    </div>
-
-    <div id="selectionModal">
-        <div class="modal-content">
-            <h2>🚨 เลือกโหมดที่ตรวจพบ</h2>
-            <div class="btn-stack">
-                <button class="choice-btn btn-traffic" onclick="confirmReport('👮 ด่านจราจร')">👮 ด่านจราจร</button>
-                <button class="choice-btn btn-checkpoint" onclick="confirmReport('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
-                <button class="btn choice-btn btn-cancel" onclick="closeModal()">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast">📍 แตะบนแผนที่เพื่อระบุจุดที่พบด่าน</div>
+    <div id="crosshair">📍</div>
+    <div id="toast"></div>
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="20">
-        <h1>รายงานด่านอุดร (Google View)</h1>
+        <h1 id="statusText">รายงานด่านอุดร (v6)</h1>
     </div>
 
     <div id="map"></div>
 
+    <div id="selector">
+        <h2 style="margin:0; font-size: 18px">📌 ขั้นตอนสุดท้าย: จุดนี้พบด่านอะไร?</h2>
+        <div class="choice-row">
+            <button class="choice-btn" style="background: #1a73e8" onclick="confirmPoint('👮 ด่านจราจร')">👮 จราจร</button>
+            <button class="choice-btn" style="background: #d93025" onclick="confirmPoint('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
+        </div>
+        <button onclick="cancelSelection()" style="margin-top:20px; border:none; background:none; color:#777; font-family:'Kanit'">ยกเลิก</button>
+    </div>
+
     <div class="bottom-nav">
-        <button class="btn" onclick="location.reload()">
-            <i data-lucide="rotate-cw" style="width:18px"></i> รีเฟรช
-        </button>
-        <button class="btn btn-report" id="reportBtn" onclick="toggleSelectionMode()">
-             <i data-lucide="plus-circle" style="width:18px"></i> แจ้งพบด่าน
-        </button>
+        <button class="btn" onclick="location.reload()"><i data-lucide="refresh-cw"></i> รีเฟรช</button>
+        <button class="btn btn-main" id="reportBtn" onclick="startSelection()">📌 แจ้งพบด่าน</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const STORAGE_KEY = 'udon_check_v5';
-        const EXPIRE_TIME = 3 * 60 * 60 * 1000;
-        let isSelecting = false;
-        let tempMarker = null;
+        const STORAGE_ID = 'udon_v6_final';
+        const EXPIRED = 3 * 60 * 60 * 1000;
+        let map, markerGroup, currentMode = 'view';
 
-        // --- Init Map ---
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
-
-        // --- Logic ---
-        function getPoints() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            let list = data ? JSON.parse(data) : [];
-            const now = Date.now();
-            return list.filter(p => (now - p.id) < EXPIRE_TIME);
-        }
-
-        function savePoint(lat, lng, type) {
-            const list = getPoints();
-            const newPoint = { id: Date.now(), lat, lng, type, up: 0, down: 0 };
-            list.push(newPoint);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-            return newPoint;
-        }
-
-        function renderAll() {
-            // ลบมาร์เกอร์เก่าออกให้หมดก่อนเรนเดอร์ใหม่
-            map.eachLayer(layer => { if (layer instanceof L.Marker) map.removeLayer(layer); });
+        // --- Init ---
+        function initApp() {
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
             
-            getPoints().forEach(p => {
+            markerGroup = L.layerGroup().addTo(map);
+            loadAndRender();
+            
+            // พยายามหาตำแหน่งเรา
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    L.circleMarker([latitude, longitude], { radius: 8, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 0.8 }).addTo(map);
+                    map.panTo([latitude, longitude]);
+                }, null, { enableHighAccuracy: true });
+            }
+
+            // จัดการคลิกแผนที่
+            map.on('click', onMapClick);
+            
+            lucide.createIcons();
+        }
+
+        function loadAndRender() {
+            markerGroup.clearLayers();
+            const now = Date.now();
+            let data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
+            data = data.filter(p => (now - p.id) < EXPIRED);
+            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
+
+            data.forEach(p => {
                 const icon = L.divIcon({
-                    className: 'emoji-icon',
+                    className: 'custom-marker',
                     html: p.type.includes('จราจร') ? '👮' : '🚨',
-                    iconSize: [44, 44], iconAnchor: [22, 22]
+                    iconSize: [46, 46], iconAnchor: [23, 23]
                 });
-                const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
-                m.bindPopup(`
-                    <div class="popup-container">
-                        <span class="popup-title">${p.type}</span>
-                        <span style="font-size:12px; color:#777">แจ้งเมื่อ ${Math.floor((Date.now()-p.id)/60000)} นาทีที่แล้ว</span>
-                        <div class="v-stats">
-                            <span style="color:#1e8e3e">✅ ยังอยู่: ${p.up}</span>
-                            <span style="color:#d93025">❌ ไม่อยู่: ${p.down}/5</span>
-                        </div>
-                        <div class="v-row">
-                            <button class="v-btn" onclick="vote(${p.id}, 'up')">ยังอยู่</button>
-                            <button class="v-btn" onclick="vote(${p.id}, 'down')">ไม่อยู่แล้ว</button>
-                        </div>
-                    </div>
-                `);
+                const m = L.marker([p.lat, p.lng], { icon }).addTo(markerGroup);
+                m.bindPopup(`<b>${p.type}</b><br>แจ้งเมื่อ ${Math.floor((now-p.id)/60000)} นาทีที่แล้ว<br><button onclick="deleteMe(${p.id})" style="margin-top:10px; width:100%">ไม่อยู่แล้ว</button>`);
             });
         }
 
-        function vote(id, type) {
-            let list = getPoints();
-            const i = list.findIndex(p => p.id === id);
-            if (i !== -1) {
-                if (type === 'up') list[i].up++;
-                else {
-                    list[i].down++;
-                    if (list[i].down >= 5) { list.splice(i, 1); alert("ลบด่านออกแล้ว"); }
-                }
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-                renderAll();
+        function deleteMe(id) {
+            let data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
+            data = data.filter(p => p.id !== id);
+            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
+            loadAndRender();
+        }
+
+        // --- Workflow ---
+        function startSelection() {
+            currentMode = 'select';
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('reportBtn').classList.add('active');
+            document.getElementById('reportBtn').innerHTML = '✅ ยืนยันพิกัดนี้';
+            document.getElementById('reportBtn').onclick = finalizePosition;
+            showToast("📍 เลื่อนแผนที่ให้หมุดสีแดงตรงกับจุดที่พบด่าน");
+        }
+
+        function finalizePosition() {
+            const center = map.getCenter();
+            openColorSelector(center);
+        }
+
+        function onMapClick(e) {
+            if (currentMode === 'select') {
+                openColorSelector(e.latlng);
             }
         }
 
-        function toggleSelectionMode() {
-            isSelecting = !isSelecting;
+        function openColorSelector(latlng) {
+            window.activeLatLng = latlng;
+            const selector = document.getElementById('selector');
+            selector.style.display = 'block';
+            setTimeout(() => selector.classList.add('active'), 10);
+        }
+
+        function confirmPoint(type) {
+            const latlng = window.activeLatLng;
+            const data = JSON.parse(localStorage.getItem(STORAGE_ID) || "[]");
+            data.push({ id: Date.now(), lat: latlng.lat, lng: latlng.lng, type, votes: 0 });
+            localStorage.setItem(STORAGE_ID, JSON.stringify(data));
+            
+            cancelSelection();
+            loadAndRender();
+            showToast("✨ บันทึกข้อมูลเรียบร้อย!");
+        }
+
+        function cancelSelection() {
+            currentMode = 'view';
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('selector').classList.remove('active');
+            setTimeout(() => document.getElementById('selector').style.display = 'none', 300);
+            
             const btn = document.getElementById('reportBtn');
-            const toast = document.getElementById('toast');
-            if (isSelecting) {
-                btn.classList.add('active');
-                btn.innerHTML = '🎯 จิ้มบนแผนที่';
-                toast.style.display = 'block';
-            } else {
-                btn.classList.remove('active');
-                btn.innerHTML = '<i data-lucide="plus-circle" style="width:18px"></i> แจ้งพบด่าน';
-                toast.style.display = 'none';
-                if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
-                lucide.createIcons();
-            }
+            btn.classList.remove('active');
+            btn.innerHTML = '📌 แจ้งพบด่าน';
+            btn.onclick = startSelection;
         }
 
-        map.on('click', function(e) {
-            if (isSelecting) {
-                // สร้างเข็มปักชั่วคราวให้เห็นว่าจิ้มตรงไหน
-                if (tempMarker) map.removeLayer(tempMarker);
-                tempMarker = L.marker(e.latlng).addTo(map);
-                
-                // เปิดตัวเลือก
-                document.getElementById('selectionModal').style.display = 'flex';
-            }
-        });
-
-        function confirmReport(type) {
-            if (tempMarker) {
-                const pos = tempMarker.getLatLng();
-                savePoint(pos.lat, pos.lng, type);
-                renderAll(); // โชว์ทันที
-                closeModal();
-                alert("บันทึกข้อมูลด่านเรียบร้อย!");
-            }
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerHTML = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 4000);
         }
 
-        function closeModal() {
-            document.getElementById('selectionModal').style.display = 'none';
-            toggleSelectionMode();
+        function vote(id) { 
+            // ระบบโหวตตัดออกชั่วคราวเพื่อความง่าย
         }
 
-        window.onload = () => {
-            renderAll();
-            lucide.createIcons();
-            setTimeout(() => {
-                document.getElementById('loader').style.opacity = '0';
-                setTimeout(() => document.getElementById('loader').style.display='none', 500);
-            }, 800);
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    L.circleMarker([pos.coords.latitude, pos.coords.longitude], { 
-                        radius: 7, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 
-                    }).addTo(map);
-                    map.panTo([pos.coords.latitude, pos.coords.longitude]);
-                }, null, { enableHighAccuracy: true });
-            }
-        };
+        window.onload = initApp;
     </script>
 </body>
 </html>
