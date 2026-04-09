@@ -41,28 +41,30 @@
 
     <div id="loginOverlay" class="overlay">
         <div class="modal">
-            <h3 style="margin-top:0">🔑 แอดมินเข้าใช้งาน</h3>
+            <h3 style="margin-top:0">🔑 แอดมินล็อกอิน</h3>
             <input type="text" id="adminU" placeholder="User" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
             <input type="password" id="adminP" placeholder="Pass" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
             <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ล็อกอิน</button>
+            <button onclick="document.getElementById('loginOverlay').style.display='none'" style="margin-top:10px; background:none; border:none; color:#999">ยกเลิก</button>
         </div>
     </div>
 
     <div id="nickOverlay" class="overlay">
         <div class="modal">
             <h3>ตั้งชื่อเล่นเพื่อแชท</h3>
-            <input type="text" id="nickInput" placeholder="กาย อุดร" style="width:100%; padding:14px; margin-bottom:15px; border:1px solid #ddd; border-radius:12px; font-family:'Kanit'">
+            <input type="text" id="nickInput" placeholder="พี่บอส อุดร" style="width:100%; padding:14px; margin-bottom:15px; border:1px solid #ddd; border-radius:12px; font-family:'Kanit'">
             <button onclick="saveNick()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:bold">เริ่มใช้งาน</button>
         </div>
     </div>
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="16">
-        <h1>Udon Checkpoint (v31)</h1>
+        <h1>Udon Checkpoint (Boss v32)</h1>
         <button id="clearChatBtn" style="display:none; background:red; color:white; padding:4px 10px; border:none; border-radius:20px; font-size:10px; margin-left:8px" onclick="clearAllChat()">ล้างแชท</button>
     </div>
 
-    <button id="adminBtn" style="position:fixed; top:12px; right:12px; z-index:1000; background:white; border:none; padding:8px; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2); cursor:pointer;" onclick="document.getElementById('loginOverlay').style.display='flex'">
+    <!-- ปุ่ม แอดมิน: กดเพื่อล็อกอิน / กดเพื่อล็อกเอาท์ -->
+    <button id="adminBtn" style="position:fixed; top:12px; right:12px; z-index:1000; background:white; border:none; padding:8px; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2); cursor:pointer;" onclick="handleAdminClick()">
         <i data-lucide="shield-check" id="adminIcon" style="color:var(--primary); display:none"></i>
         <i data-lucide="user" id="userIcon"></i>
     </button>
@@ -86,9 +88,7 @@
 
     <div class="bottom-nav">
         <button class="btn" style="background:#333; color:white" onclick="toggleChat()"><i data-lucide="message-square" style="width:18px"></i> แชท</button>
-        <!-- ปุ่ม แจ้งด่าน ใช้ไอคอน 📌 -->
         <button class="btn" id="startBtn" style="background:var(--primary); color:white" onclick="startSel()">📌 แจ้งด่าน</button>
-        <!-- ปุ่ม ยืนยันพิกัด ใช้ไอคอน 📌 ตามสั่งครับ -->
         <button class="btn" id="confirmPosBtn" style="background:var(--accent); color:black; display:none" onclick="confPos()">📌 ยืนยันพิกัด</button>
         <button class="btn" onclick="location.reload()" style="flex:0.4"><i data-lucide="rotate-cw" style="width:18px"></i></button>
     </div>
@@ -121,9 +121,36 @@
             L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2', { detectRetina: true }).addTo(map);
             markerGroup = L.layerGroup().addTo(map); listenPoints(); listenChat(); listenPresence();
             if(!nick) document.getElementById('nickOverlay').style.display='flex'; else setupPresence();
-            if(isAdmin) updateAdminUI(); lucide.createIcons();
+            if(isAdmin) updateAdminUI(true); lucide.createIcons();
         };
 
+        // --- ระบบล็อกอิน / ล็อกเอาท์ ใหม่ ---
+        function handleAdminClick() {
+            if(isAdmin) { if(confirm("ออกจากระบบแอดมิน?")) doLogout(); }
+            else { document.getElementById('loginOverlay').style.display='flex'; }
+        }
+
+        function doLogin() {
+            if(document.getElementById('adminU').value==='admin' && document.getElementById('adminP').value==='admin22') {
+                isAdmin=true; sessionStorage.setItem('isAdmin','true');
+                document.getElementById('loginOverlay').style.display='none';
+                updateAdminUI(true); showToast("🔓 แอดมินล็อกอินสำเร็จ");
+            } else alert("รหัสผิด");
+        }
+
+        function doLogout() {
+            isAdmin=false; sessionStorage.setItem('isAdmin','false');
+            updateAdminUI(false); showToast("🔒 ออกจากระบบแอดมินแล้ว");
+        }
+
+        function updateAdminUI(show) {
+            document.getElementById('adminIcon').style.display = show ? 'block' : 'none';
+            document.getElementById('userIcon').style.display = show ? 'none' : 'block';
+            document.getElementById('clearChatBtn').style.display = show ? 'inline-block' : 'none';
+            listenChat(); listenPoints(); // รีเฟรชเพื่อซ่อน/แสดงปุ่มลบ
+        }
+
+        // --- ระบบเดิมที่ทำงานได้ดี ---
         function listenPoints() {
             P_REF.on('value', snap => {
                 markerGroup.clearLayers();
@@ -137,8 +164,6 @@
                 });
             });
         }
-        function updateAdminUI() { document.getElementById('adminIcon').style.display='block'; document.getElementById('userIcon').style.display='none'; document.getElementById('clearChatBtn').style.display='inline-block'; listenChat(); listenPoints(); }
-        function doLogin() { if(document.getElementById('adminU').value==='admin' && document.getElementById('adminP').value==='admin22') { isAdmin=true; sessionStorage.setItem('isAdmin','true'); document.getElementById('loginOverlay').style.display='none'; updateAdminUI(); } else alert("Error"); }
         function uploadToImgBB(input) { const file = input.files[0]; if(!file || !nick) return; const formData = new FormData(); formData.append('image', file); fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body:formData }).then(res=>res.json()).then(data=>{ if(data.success) C_REF.push({ n: nick, t:"", img: data.data.url, ts: firebase.database.ServerValue.TIMESTAMP }); }); input.value = ""; }
         function listenChat() {
             C_REF.limitToLast(50).on('value', snap => {
