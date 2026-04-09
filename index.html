@@ -1,335 +1,289 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Udon Checkpoint Report - ระบบแจ้งด่านอุดร</title>
-    
-    <!-- Google Fonts -->
+
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         :root {
             --primary: #ff4757;
-            --secondary: #2ed573;
+            --success: #2ed573;
             --warning: #ffa502;
-            --dark: #2f3542;
-            --light: #f1f2f6;
-            --glass: rgba(255, 255, 255, 0.85);
+            --info: #1e90ff;
+            --dark: #1e272e;
+            --glass: rgba(0, 0, 0, 0.82);
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        body {
+            margin: 0; padding: 0; font-family: 'Kanit', sans-serif;
+            background-color: #000; overflow: hidden;
         }
 
-        body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Kanit', sans-serif; 
-            background-color: var(--dark);
-            overflow: hidden;
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+
+        /* Icon Animation */
+        .emoji-icon {
+            font-size: 34px; display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(0 2px 10px rgba(0,0,0,0.5));
+            animation: bounce 1s infinite alternate;
         }
 
-        #map { 
-            height: 100vh; 
-            width: 100vw; 
-            z-index: 1; 
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-6px); }
         }
 
-        /* Dark Map Filter */
-        .leaflet-layer,
-        .leaflet-control-zoom-in,
-        .leaflet-control-zoom-out,
-        .leaflet-control-attribution {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
-
-        .leaflet-marker-icon, 
-        .leaflet-marker-shadow,
-        .leaflet-popup-content-wrapper,
-        .leaflet-popup-tip {
-            filter: none !important;
-        }
-
-        /* Header */
+        /* Header UI */
         .header {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            border-radius: 50px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border: 1px solid rgba(255,255,255,0.3);
-            width: fit-content;
-            max-width: 90%;
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: var(--glass); backdrop-filter: blur(10px);
+            padding: 8px 18px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.15);
+            display: flex; align-items: center; gap: 8px; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        .header h1 { margin: 0; font-size: 14px; white-space: nowrap; }
+
+        /* Selection Modal */
+        #selectionModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            z-index: 9999; display: none; align-items: center; justify-content: center;
+            flex-direction: column; opacity: 0; transition: opacity 0.3s;
         }
 
-        .header h1 {
-            margin: 0;
-            font-size: 16px;
-            color: var(--dark);
-            white-space: nowrap;
+        .modal-content {
+            background: #222; padding: 25px; border-radius: 30px;
+            width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 15px; border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .badge {
-            background: var(--primary);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
+        .modal-content h2 { color: white; text-align: center; margin: 0 0 10px 0; font-size: 18px; }
 
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
+        .choice-btn {
+            padding: 20px; border: none; border-radius: 20px; cursor: pointer;
+            font-family: 'Kanit', sans-serif; font-size: 20px; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            color: white; transition: transform 0.2s;
         }
+        .choice-btn:active { transform: scale(0.95); }
+        .btn-traffic { background: linear-gradient(135deg, #1e90ff, #00d2ff); }
+        .btn-checkpoint { background: linear-gradient(135deg, #ff4757, #ff6b81); }
+        .btn-cancel { background: transparent; color: #aaa; font-size: 14px; padding: 10px; }
 
         /* Bottom Nav */
         .bottom-nav {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex;
-            gap: 15px;
-            width: 90%;
-            max-width: 400px;
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; gap: 12px; width: 90%; max-width: 400px;
         }
 
         .btn {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-            font-family: 'Kanit', sans-serif;
+            flex: 1; padding: 16px; border: none; border-radius: 22px;
+            font-weight: 600; font-size: 17px; color: white; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: 'Kanit', sans-serif;
         }
+        .btn-report { background: linear-gradient(135deg, #ff4757, #ff6b81); }
+        .btn-report.selecting { background: var(--warning); animation: pulse 1s infinite; }
+        .btn-refresh { background: #333; }
 
-        .btn-report { 
-            background: linear-gradient(135deg, #ff4757, #ff6b81); 
-            color: white; 
-        }
-
-        .btn-report.selecting {
-            background: linear-gradient(135deg, var(--warning), #ff7f50);
-            animation: selecting-pulse 1s infinite;
-        }
-
-        @keyframes selecting-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 165, 2, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(255, 165, 2, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 165, 2, 0); }
-        }
-        
-        .btn-refresh { 
-            background: var(--glass); 
-            color: var(--dark);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
         /* Popup */
-        .leaflet-popup-content-wrapper { border-radius: 15px; background: var(--glass); backdrop-filter: blur(10px); }
-        .popup-container { text-align: center; min-width: 180px; }
-        .popup-title { font-weight: 600; font-size: 18px; color: var(--primary); display: block; }
-        .popup-time { font-size: 12px; color: #666; margin-bottom: 10px; display: block; }
-        .delete-btn { background: var(--warning); color: white; border: none; padding: 10px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .leaflet-popup-content-wrapper { border-radius: 20px; background: rgba(255, 255, 255, 0.95); }
+        .popup-container { text-align: center; min-width: 180px; padding: 5px; }
+        .popup-title { font-weight: 600; font-size: 20px; color: var(--dark); display: block; }
+        .popup-time { font-size: 12px; color: #666; display: block; margin-bottom: 12px; }
+        .v-stats { display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
+        .v-row { display: flex; gap: 8px; }
+        .v-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; color: white; cursor: pointer; font-family: 'Kanit', sans-serif; font-weight: bold; font-size: 14px; }
+        .vb-up { background: var(--success); }
+        .vb-down { background: var(--warning); }
 
-        /* Loader */
-        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 0.5s ease; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        /* Toast & Loader */
+        #toast { position: fixed; top: 65px; left: 50%; transform: translateX(-50%); background: var(--warning); color: white; padding: 8px 20px; border-radius: 50px; z-index: 2000; display: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Instruction Toast */
-        #toast {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--warning);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            z-index: 2000;
-            display: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-weight: bold;
-        }
     </style>
 </head>
+
 <body>
 
     <div id="loader">
         <div class="spinner"></div>
-        <p style="margin-top:15px">กำลังโหลดข้อมูลด่าน...</p>
+        <p style="margin-top:20px;">กำลังเตรียมแผนที่ดาวเทียม...</p>
     </div>
 
-    <div id="toast">👆 กรุณาแตะจุดบนแผนที่เพื่อแจ้งพิกัด</div>
+    <div id="selectionModal">
+        <div class="modal-content">
+            <h2>🚨 เลือกประเภทด่าน</h2>
+            <button class="choice-btn btn-traffic" onclick="confirmReport('👮 ด่านจราจร')">👮 ด่านจราจร</button>
+            <button class="choice-btn btn-checkpoint" onclick="confirmReport('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
+            <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+        </div>
+    </div>
+
+    <div id="toast">👆 แตะเลือกจุดที่พบด่านบนแผนที่</div>
 
     <div class="header">
-        <i data-lucide="map-pin" style="color: var(--primary)"></i>
-        <h1>ระบบแจ้งด่านอุดรธานี</h1>
-        <div class="badge">LIVE</div>
+        <span>🛰️</span>
+        <h1>รายงานด่านอุดร (3 ชม.)</h1>
     </div>
 
     <div id="map"></div>
 
     <div class="bottom-nav">
         <button class="btn btn-refresh" onclick="location.reload()">
-            <i data-lucide="refresh-cw"></i> อัปเดต
+            <i data-lucide="rotate-cw"></i> อัปเดต
         </button>
         <button class="btn btn-report" id="reportBtn" onclick="toggleSelectionMode()">
-            <i data-lucide="alert-triangle"></i> แจ้งพบด่าน
+             📌 แจ้งพบด่าน
         </button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const STORAGE_KEY = 'udon_checkpoints_v2';
+        const STORAGE_KEY = 'udon_checkpoints_v4';
+        const EXPIRE_TIME = 3 * 60 * 60 * 1000;
+        const DELETE_VOTES = 5;
         let isSelectingLocation = false;
+        let selectedLatLng = null;
 
-        // --- Data Logic ---
+        // --- Data ---
         function getCheckpoints() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return data ? JSON.parse(data) : [];
+            let data = localStorage.getItem(STORAGE_KEY);
+            let list = data ? JSON.parse(data) : [];
+            const now = Date.now();
+            const filtered = list.filter(cp => (now - cp.id) < EXPIRE_TIME);
+            if (filtered.length !== list.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+            return filtered;
         }
 
         function saveCheckpoint(lat, lng, type) {
-            const checkpoints = getCheckpoints();
-            const newPoint = {
-                id: Date.now(),
-                lat: lat,
-                lng: lng,
-                type: type,
-                timestamp: new Date().toISOString()
-            };
-            checkpoints.push(newPoint);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoints));
-            return newPoint;
-        }
-
-        function deleteCheckpoint(id) {
-            let checkpoints = getCheckpoints();
-            checkpoints = checkpoints.filter(cp => cp.id !== id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoints));
+            const list = getCheckpoints();
+            list.push({ id: Date.now(), lat, lng, type, up: 0, down: 0 });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
             location.reload();
         }
 
-        // --- Map Init ---
-        const udonCoords = [17.4138, 102.7872]; // เซ็นเตอร์อุดร
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView(udonCoords, 14);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-        // --- Selection Logic ---
-        function toggleSelectionMode() {
-            const btn = document.getElementById('reportBtn');
-            const toast = document.getElementById('toast');
-            
-            isSelectingLocation = !isSelectingLocation;
-
-            if (isSelectingLocation) {
-                btn.innerHTML = '<i data-lucide="map-pin"></i> เลือกจุดบนแผนที่...';
-                btn.classList.add('selecting');
-                toast.style.display = 'block';
-            } else {
-                btn.innerHTML = '<i data-lucide="alert-triangle"></i> แจ้งพบด่าน';
-                btn.classList.remove('selecting');
-                toast.style.display = 'none';
+        function handleVote(id, voteType) {
+            let list = getCheckpoints();
+            const idx = list.findIndex(cp => cp.id === id);
+            if (idx !== -1) {
+                if (voteType === 'up') list[idx].up += 1;
+                else {
+                    list[idx].down += 1;
+                    if (list[idx].down >= DELETE_VOTES) {
+                        list.splice(idx, 1);
+                        alert("ด่านถูกลบแล้วเนื่องจากไม่มีอยู่จริงครบ 5 คน");
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+                        location.reload(); return;
+                    }
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+                location.reload();
             }
-            lucide.createIcons();
         }
 
-        map.on('click', function(e) {
-            if (isSelectingLocation) {
-                const { lat, lng } = e.latlng;
-                
-                // กระตุ้น Haptic (ถ้ามี)
-                if (window.navigator.vibrate) window.navigator.vibrate(50);
+        // --- Map ---
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { pane: 'shadowPane' }).addTo(map);
 
-                const type = prompt("🚨 พบด่านชนิดใดที่จุดนี้?\n(เช่น ด่านตรวจ, ด่านลอย, จราจร)");
-                if (type && type.trim() !== "") {
-                    saveCheckpoint(lat, lng, type.trim());
-                    location.reload();
-                } else {
-                    toggleSelectionMode(); // ยกเลิกโหมด
-                }
-            }
-        });
-
-        // --- Render ---
         function renderMarkers() {
-            const checkpoints = getCheckpoints();
-            checkpoints.forEach(cp => {
-                const marker = L.marker([cp.lat, cp.lng]).addTo(map);
-                const timeStr = new Date(cp.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            getCheckpoints().forEach(cp => {
+                const icon = L.divIcon({
+                    className: 'emoji-icon',
+                    html: cp.type.includes('จราจร') ? '👮' : '🚨',
+                    iconSize: [40, 40], iconAnchor: [20, 20]
+                });
+                const marker = L.marker([cp.lat, cp.lng], { icon }).addTo(map);
+                const timeAgo = Math.floor((Date.now() - cp.id) / 60000);
                 
-                const content = `
+                marker.bindPopup(`
                     <div class="popup-container">
-                        <span class="popup-title">🚨 ${cp.type}</span>
-                        <span class="popup-time">แจ้งเมื่อ: ${timeStr} น.</span>
-                        <button class="delete-btn" onclick="deleteCheckpoint(${cp.id})">
-                            <i data-lucide="check-circle" style="width:14px"></i> ด่านเลิกแล้ว
-                        </button>
+                        <span class="popup-title">${cp.type}</span>
+                        <span class="popup-time">เมื่อ ${timeAgo} นาทีที่แล้ว</span>
+                        <div class="v-stats">
+                            <span style="color:var(--success)">✅ ยังอยู่: ${cp.up}</span>
+                            <span style="color:var(--primary)">❌ ไม่อยู่: ${cp.down}/${DELETE_VOTES}</span>
+                        </div>
+                        <div class="v-row">
+                            <button class="v-btn vb-up" onclick="handleVote(${cp.id}, 'up')">ยังอยู่</button>
+                            <button class="v-btn vb-down" onclick="handleVote(${cp.id}, 'down')">ไม่อยู่แล้ว</button>
+                        </div>
                     </div>
-                `;
-                marker.bindPopup(content);
-                marker.on('popupopen', () => lucide.createIcons());
+                `);
             });
         }
 
-        // --- Init ---
+        // --- Interaction ---
+        function toggleSelectionMode() {
+            isSelectingLocation = !isSelectingLocation;
+            const btn = document.getElementById('reportBtn');
+            const toast = document.getElementById('toast');
+            if (isSelectingLocation) {
+                btn.innerHTML = '🎯 จิ้มจุดบนแผนภาพ';
+                btn.classList.add('selecting');
+                toast.style.display = 'block';
+            } else {
+                btn.innerHTML = '📌 แจ้งพบด่าน';
+                btn.classList.remove('selecting');
+                toast.style.display = 'none';
+            }
+        }
+
+        map.on('click', function (e) {
+            if (isSelectingLocation) {
+                selectedLatLng = e.latlng;
+                const modal = document.getElementById('selectionModal');
+                modal.style.display = 'flex';
+                setTimeout(() => modal.style.opacity = '1', 10);
+            }
+        });
+
+        function confirmReport(type) {
+            if (selectedLatLng) {
+                saveCheckpoint(selectedLatLng.lat, selectedLatLng.lng, type);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('selectionModal');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                toggleSelectionMode();
+            }, 300);
+        }
+
+        // --- Start ---
         window.onload = () => {
             renderMarkers();
             lucide.createIcons();
-            
             setTimeout(() => {
                 document.getElementById('loader').style.opacity = '0';
                 setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
             }, 800);
 
-            // พยายามหาตำแหน่งผู้ใช้ (เพื่อแสดงตำแหน่งเราเฉยๆ ไม่ได้ใช้บันทึกอัตโนมัติ)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
-                    const { latitude, longitude } = pos.coords;
-                    L.circleMarker([latitude, longitude], {
-                        radius: 7, fillColor: "#3498db", color: "#fff", weight: 2, opacity: 1, fillOpacity: 1
-                    }).addTo(map).bindTooltip("คุณอยู่ที่นี่");
-                    
-                    // เลื่อนแผนที่ไปหาคนใช้
-                    map.panTo([latitude, longitude]);
+                    L.circleMarker([pos.coords.latitude, pos.coords.longitude], { radius: 8, fillColor: "#3498db", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map);
+                    map.panTo([pos.coords.latitude, pos.coords.longitude]);
                 }, null, { enableHighAccuracy: true });
             }
         };
     </script>
 </body>
+
 </html>
