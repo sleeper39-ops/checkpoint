@@ -3,130 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - Labels v9</title>
+    <title>Udon Checkpoint - Live Chat Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase SDK (สำหรับแชทสด) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <style>
-        :root { --primary: #1a73e8; --red: #d93025; --dark: #202124; }
+        :root { --primary: #1a73e8; --red: #d93025; --dark: #1e272e; --glass: rgba(255, 255, 255, 0.95); }
         body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; z-index: 10; }
         
-        /* Precision Crosshair */
-        #crosshair {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 5000; pointer-events: none; display: none; width: 30px; height: 30px;
-        }
-        #crosshair::before { content:''; position:absolute; top:14px; left:0; width:100%; height:2px; background:#ff0000; }
-        #crosshair::after { content:''; position:absolute; left:14px; top:0; width:2px; height:100%; background:#ff0000; }
-        #crosshair-dot { position:absolute; top:12px; left:12px; width:6px; height:6px; background:#ff0000; border-radius:50%; border:1px solid white; }
+        /* Marker Styles */
+        .marker-wrapper { display: flex; align-items: center; white-space: nowrap; pointer-events: none; }
+        .straight-pin { background: white; border-radius: 50%; width: 38px !important; height: 38px !important; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid white; position: relative; pointer-events: auto; }
+        .straight-pin::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 12px solid white; }
+        .pin-label { background: rgba(255, 255, 255, 0.9); padding: 4px 10px; border-radius: 15px; margin-left: 8px; border: 1px solid #ddd; color: #111; font-weight: 600; font-size: 12px; pointer-events: auto; }
 
-        /* Pin with Label Style */
-        .marker-wrapper {
-            display: flex; align-items: center; justify-content: flex-start;
-            white-space: nowrap; pointer-events: none;
-        }
+        /* Floating Nav & Header */
+        .header { position: fixed; top: 15px; left: 15px; z-index: 1000; background: white; padding: 8px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px; }
+        #adminLoginBtn { position: fixed; top: 15px; right: 15px; z-index: 1000; background: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
-        .straight-pin {
-            background: white; border-radius: 50%;
-            width: 40px !important; height: 40px !important;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            border: 2px solid white; shrink: 0;
-            position: relative; pointer-events: auto;
+        /* Chat System Styles */
+        #chatDrawer {
+            position: fixed; bottom: -60vh; left: 0; width: 100%; height: 60vh;
+            background: white; z-index: 2000; border-radius: 25px 25px 0 0;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.3); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column;
         }
-        .straight-pin::after {
-            content: ''; position: absolute; bottom: -12px; left: 50%;
-            transform: translateX(-50%); width: 0; height: 0;
-            border-left: 8px solid transparent; border-right: 8px solid transparent;
-            border-top: 14px solid white;
-        }
-        .pin-emoji { font-size: 22px; }
+        #chatDrawer.active { bottom: 0; }
+        .chat-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; }
+        .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; padding-bottom: 30px; }
+        .chat-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-family: 'Kanit'; }
+        .send-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
-        /* Label on map */
-        .pin-label {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 4px 12px; border-radius: 20px;
-            margin-left: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            border: 1px solid #ddd;
-            color: #111; font-weight: 600; font-size: 13px;
-            pointer-events: auto;
-        }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative; }
+        .msg-me { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
+        .msg-other { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .sender { font-size: 10px; font-weight: bold; margin-bottom: 3px; display: block; opacity: 0.7; }
+        .m-time { font-size: 9px; opacity: 0.6; display: block; text-align: right; margin-top: 3px; }
 
-        /* UI Overlays */
-        .header {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; background: white; padding: 8px 18px; border-radius: 50px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px;
-        }
-        .header h1 { margin: 0; font-size: 14px; color: #333; }
+        #nicknameOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; display:none; align-items:center; justify-content:center; }
 
-        /* Selector Selector */
-        #selector {
-            position: fixed; bottom: 0; left: 0; width: 100%; padding: 25px 20px 45px;
-            background: white; border-radius: 25px 25px 0 0; z-index: 6000;
-            display: none; box-shadow: 0 -8px 30px rgba(0,0,0,0.3); text-align: center;
-        }
-        .choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .choice-btn {
-            padding: 20px; border: none; border-radius: 18px; color: white;
-            font-size: 18px; font-weight: bold; cursor: pointer; font-family: 'Kanit';
-        }
-
-        .bottom-nav {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; gap: 12px; width: 92%; max-width: 420px;
-        }
-        .btn {
-            flex: 1; padding: 16px; border: none; border-radius: 15px;
-            font-weight: 600; font-size: 17px; background: white; color: #333;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
-            font-family: 'Kanit';
-        }
+        /* Controls */
+        #crosshair { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5000; pointer-events: none; display: none; width: 30px; height: 30px; border: 2px solid red; border-radius: 50%; }
+        .bottom-nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; width: 95%; max-width: 500px; transition: 0.3s; }
+        .bottom-nav.hide { transform: translate(-50%, 150%); }
+        .btn { flex: 1; padding: 14px; border: none; border-radius: 15px; font-weight: 600; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Kanit'; }
         .btn-main { background: var(--primary); color: white; }
-        .btn-confirm { background: #fbbc04; color: black; display: none; }
-
-        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 10px 20px; border-radius: 10px; z-index: 5000; display: none; font-size: 13px; text-align: center; }
+        .btn-chat { background: #333; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="crosshair"><div id="crosshair-dot"></div></div>
-    <div id="toast"></div>
+    <div id="nicknameOverlay">
+        <div style="background:white; padding:30px; border-radius:24px; text-align:center; width:80%; max-width:300px">
+            <h3>ตั้งชื่อเล่นของคุณ</h3>
+            <input type="text" id="nickInput" placeholder="เช่น พี่เสือ อุดร" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
+            <button onclick="saveNickname()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ตกลง</button>
+        </div>
+    </div>
+
+    <div id="chatDrawer">
+        <div class="chat-header" onclick="toggleChat()">
+            <strong style="font-size: 18px">💬 ห้องแชทอุดรธานี (Live)</strong>
+            <i data-lucide="chevron-down" id="chatIcon"></i>
+        </div>
+        <div class="chat-messages" id="messageList">
+            <!-- ข้อความจะมาโผล่ตรงนี้ -->
+            <div style="text-align:center; color:#999; font-size:12px">ยังไม่มีการพูดคุย...</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatMsgInput" class="chat-input" placeholder="พิมพ์ข้อความที่นี่..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()"><i data-lucide="send"></i></button>
+        </div>
+    </div>
+
+    <div id="crosshair"></div>
 
     <div class="header">
         <i data-lucide="map-pin" style="width:16px; color:var(--primary)"></i>
-        <h1>รายงานด่านอุดรธานี (Real-time Labels)</h1>
+        <h1>ระบบแจ้งด่าน & แชทสด</h1>
     </div>
 
     <div id="map"></div>
 
-    <div id="selector">
-        <h2 style="margin:0; font-size:18px">📌 เลือกประเภทด่านเพื่อปักบนแผนที่</h2>
-        <div class="choice-row">
-            <button class="choice-btn" style="background: #1a73e8" onclick="saveData('👮 ด่านจราจร')">👮 จราจร</button>
-            <button class="choice-btn" style="background: #d93025" onclick="saveData('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
-        </div>
-        <button onclick="hideSelector()" style="margin-top:20px; border:none; background:none; color:#bbb; font-family:'Kanit'">ยกเลิก</button>
-    </div>
-
     <div class="bottom-nav">
-        <button class="btn" onclick="location.reload()"><i data-lucide="rotate-cw"></i> รีเฟรช</button>
-        <button class="btn btn-main" id="startBtn" onclick="enterSelect()">📌 แจ้งพบด่าน</button>
-        <button class="btn btn-confirm" id="confirmBtn" onclick="onPinConfirm()">📍 ยืนยันพิกัดกากบาท</button>
+        <button class="btn btn-chat" onclick="toggleChat()">
+            <i data-lucide="message-square"></i> แชท
+        </button>
+        <button class="btn btn-main" onclick="enterSelect()">
+            📌 แจ้งด่าน
+        </button>
+        <button class="btn" onclick="location.reload()">
+            <i data-lucide="rotate-cw"></i>
+        </button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const KEY = 'udon_v9_labels';
-        const EXPIRED = 3 * 60 * 60 * 1000;
+        // --- 1. CONFIG: สำหรับแชทสด (Firebase) ---
+        // หมายเหตุ: นี่คือการจำลอง หากต้องการใช้งานจริงแบบเข้าถึงคนอื่นได้ 
+        // ต้องนำ Config จาก Firebase Project ของคุณมาใส่ที่นี่ครับ
+        const firebaseConfig = {
+            databaseURL: "https://udon-checkpoint-demo-default-rtdb.firebaseio.com" // ตัวอย่าง URL โปรเจค
+        };
+        
+        // เริ่มต้น Firebase (หากไม่มี Config ข้อความจะถูกเก็บในเครื่องชั่วคราวแทน)
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch(e) { console.log("Firebase not initialized. Chat will be local demo mode."); }
+
+        // --- 2. Chat Logic ---
+        let nickname = localStorage.getItem('chat_nick') || "";
+        
+        function toggleChat() {
+            const drawer = document.getElementById('chatDrawer');
+            const nav = document.querySelector('.bottom-nav');
+            const isOpening = !drawer.classList.contains('active');
+            
+            drawer.classList.toggle('active');
+            nav.classList.toggle('hide');
+
+            if(isOpening && !nickname) {
+                document.getElementById('nicknameOverlay').style.display='flex';
+            }
+        }
+
+        function saveNickname() {
+            const val = document.getElementById('nickInput').value.trim();
+            if(val) {
+                nickname = val;
+                localStorage.setItem('chat_nick', val);
+                document.getElementById('nicknameOverlay').style.display='none';
+                sendMessage("พิกัด: เข้าร่วมห้องแชทแล้ว 👋", true);
+            }
+        }
+
+        function sendMessage(customMsg, isSystem = false) {
+            const input = document.getElementById('chatMsgInput');
+            const text = customMsg || input.value.trim();
+            if(!text) return;
+
+            const msgData = {
+                sender: nickname,
+                text: text,
+                time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
+            };
+
+            if(db) {
+                db.ref('messages').push(msgData);
+            } else {
+                displayMessage(msgData); // Fallback demo
+            }
+            input.value = "";
+        }
+
+        // ฟังคำสั่งเมื่อมีข้อความใหม่ (Real-time)
+        if(db) {
+            db.ref('messages').limitToLast(50).on('value', (snapshot) => {
+                const list = document.getElementById('messageList');
+                list.innerHTML = "";
+                snapshot.forEach(child => {
+                    displayMessage(child.val());
+                });
+                list.scrollTop = list.scrollHeight;
+            });
+        }
+
+        function displayMessage(data) {
+            const list = document.getElementById('messageList');
+            const isMe = data.sender === nickname;
+            const div = document.createElement('div');
+            div.className = `msg ${isMe ? 'msg-me' : 'msg-other'}`;
+            div.innerHTML = `
+                <span class="sender">${data.sender}</span>
+                ${data.text}
+                <span class="m-time">${data.time}</span>
+            `;
+            list.appendChild(div);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        // --- 3. แผนที่และมาร์เกอร์ (จากรุ่น v10) ---
         let map, markerGroup;
+        const P_KEY = 'udon_v11_points';
 
         window.onload = () => {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
             L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
             markerGroup = L.layerGroup().addTo(map);
-            loadMarkers();
+            
+            renderAll();
+            lucide.createIcons();
             
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -135,84 +211,53 @@
                     map.panTo([latitude, longitude]);
                 }, null, { enableHighAccuracy: true });
             }
-            lucide.createIcons();
         };
 
-        function loadMarkers() {
+        function renderAll() {
             markerGroup.clearLayers();
             const now = Date.now();
-            let data = JSON.parse(localStorage.getItem(KEY) || "[]");
-            data = data.filter(p => (now - p.id) < EXPIRED);
-            localStorage.setItem(KEY, JSON.stringify(data));
+            let data = JSON.parse(localStorage.getItem(P_KEY) || "[]");
+            data = data.filter(p => (now - p.id) < (3*60*60*1000));
+            localStorage.setItem(P_KEY, JSON.stringify(data));
 
             data.forEach(p => {
-                const date = new Date(p.id);
-                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-                
-                const iconHtml = `
+                const hour = new Date(p.id).getHours().toString().padStart(2,'0');
+                const min = new Date(p.id).getMinutes().toString().padStart(2,'0');
+                const html = `
                     <div class="marker-wrapper">
-                        <div class="straight-pin">
-                            <span class="pin-emoji">${p.type.includes('จราจร') ? '👮' : '🚨'}</span>
-                        </div>
-                        <div class="pin-label">${p.type} <br><small>แจ้งเมื่อ ${timeStr}</small></div>
+                        <div class="straight-pin"><span class="pin-emoji">${p.type.includes('จราจร')?'👮':'🚨'}</span></div>
+                        <div class="pin-label">${p.type}<br><small>แจ้งเมื่อ ${hour}:${min}</small></div>
                     </div>
                 `;
-
-                const icon = L.divIcon({
-                    className: 'dummy-class', 
-                    html: iconHtml,
-                    iconSize: [0, 0], // Let content define size
-                    iconAnchor: [20, 52] // Adjust anchor to match pin tip
-                });
-
-                const m = L.marker([p.lat, p.lng], { icon }).addTo(markerGroup);
-                m.bindPopup(`<b>${p.type}</b><br><small>แจ้งเมื่อ ${timeStr}</small><br><button onclick="delPoint(${p.id})" style="margin-top:10px; width:100%">ไม่อยู่แล้ว</button>`);
+                L.marker([p.lat, p.lng], { 
+                    icon: L.divIcon({ className:'dm', html, iconSize:[0,0], iconAnchor:[19,50] }) 
+                }).addTo(markerGroup).bindPopup(`<b>${p.type}</b><br><button onclick="deletePoint(${p.id})" style="width:100%; margin-top:10px">แจ้งไม่อยู่แล้ว</button>`);
             });
         }
 
-        function delPoint(id) {
-            let data = JSON.parse(localStorage.getItem(KEY) || "[]");
+        function deletePoint(id) {
+            let data = JSON.parse(localStorage.getItem(P_KEY) || "[]");
             data = data.filter(p => p.id !== id);
-            localStorage.setItem(KEY, JSON.stringify(data));
-            loadMarkers();
+            localStorage.setItem(P_KEY, JSON.stringify(data));
+            renderAll();
         }
 
         function enterSelect() {
-            document.getElementById('crosshair').style.display = 'block';
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('confirmBtn').style.display = 'flex';
-            showToast("📍 เลื่อนแผนที่ให้กากบาทอยู่จุดที่พบด่าน");
+            const latlng = map.getCenter();
+            const type = prompt("พบด่านชนิดไหนตอนนี้?\n1. ด่านจราจร\n2. ด่านเป่า\n(พิมพ์ 1 หรือ 2)");
+            let typeName = "";
+            if (type === "1") typeName = "👮 ด่านจราจร";
+            else if (type === "2") typeName = "🚨 ด่านเป่า";
+            else return;
+
+            const data = JSON.parse(localStorage.getItem(P_KEY) || "[]");
+            data.push({ id: Date.now(), lat: latlng.lat, lng: latlng.lng, type: typeName });
+            localStorage.setItem(P_KEY, JSON.stringify(data));
+            renderAll();
+            sendMessage(`🚨 แจ้งพบด่านใหม่: ${typeName} ตรงจุดพิกัด!`);
         }
 
-        function onPinConfirm() {
-            window.activeLatLng = map.getCenter();
-            document.getElementById('selector').style.display = 'block';
-        }
-
-        function saveData(type) {
-            const loc = window.activeLatLng;
-            const data = JSON.parse(localStorage.getItem(KEY) || "[]");
-            data.push({ id: Date.now(), lat: loc.lat, lng: loc.lng, type });
-            localStorage.setItem(STORAGE_KEY = KEY, JSON.stringify(data));
-            
-            hideSelector();
-            loadMarkers();
-            showToast("✅ บันทึกข้อมูลพร้อมรายงานเรียบร้อย");
-        }
-
-        function hideSelector() {
-            document.getElementById('selector').style.display = 'none';
-            document.getElementById('crosshair').style.display = 'none';
-            document.getElementById('startBtn').style.display = 'flex';
-            document.getElementById('confirmBtn').style.display = 'none';
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerHTML = msg;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
+        function toggleMode() { /* เสริมสำหรับเวอร์ชันถัดไป */ }
     </script>
 </body>
 </html>
