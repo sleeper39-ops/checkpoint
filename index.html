@@ -3,65 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint - v12 Ultimate Edition</title>
+    <title>Udon Checkpoint - Presence v14</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Firebase SDK (สำหรับแชทสด) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
     <style>
-        :root { --primary: #1a73e8; --red: #d93025; --dark: #202124; --accent: #fbbc04; }
-        body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #111; overflow: hidden; }
+        :root { --primary: #1a73e8; --red: #d93025; --dark: #111; --accent: #fbbc04; }
+        body { margin: 0; padding: 0; font-family: 'Kanit', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; z-index: 10; }
         
-        /* Precision Crosshair (+) */
-        #crosshair {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 5000; pointer-events: none; display: none; width: 30px; height: 30px;
+        /* Presence Bar */
+        #onlineList {
+            background: #fff; border-bottom: 1px solid #eee; padding: 10px 15px;
+            font-size: 11px; color: #666; display: flex; gap: 8px; overflow-x: auto;
+            white-space: nowrap; align-items: center;
         }
-        #crosshair::before { content:''; position:absolute; top:14px; left:0; width:100%; height:2px; background:red; }
-        #crosshair::after { content:''; position:absolute; left:14px; top:0; width:2px; height:100%; background:red; }
-        #crosshair-dot { position:absolute; top:12px; left:12px; width:6px; height:6px; background:red; border-radius:50%; border:1px solid white; }
+        .online-tag { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .online-tag::before { content:''; width:6px; height:6px; background:#34a853; border-radius:50%; }
 
-        /* Pin with Label v9 style (Straight Pin) */
+        /* Marker Styles */
         .marker-wrapper { display: flex; align-items: center; white-space: nowrap; pointer-events: none; }
-        .straight-pin { background: white; border-radius: 50%; width: 40px !important; height: 40px !important; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 2px solid white; position: relative; pointer-events: auto; }
+        .straight-pin { background: white; border-radius: 50%; width: 40px !important; height: 40px !important; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 2px solid white; position: relative; pointer-events: auto; }
         .straight-pin::after { content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 14px solid white; }
-        .pin-label { background: rgba(255, 255, 255, 0.9); padding: 5px 12px; border-radius: 20px; margin-left: 10px; border: 1px solid #ddd; color: #111; font-weight: 600; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .pin-label { background: rgba(255, 255, 255, 0.95); padding: 5px 12px; border-radius: 20px; margin-left: 10px; border: 1px solid #ddd; color: #111; font-weight: 600; font-size: 13px; pointer-events: auto; }
 
-        /* Header & Admin */
-        .header { position: fixed; top: 15px; left: 15px; z-index: 1000; background: white; padding: 8px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px; border: 1px solid #ddd; }
-        .header h1 { margin: 0; font-size: 14px; color: #333; }
-        #adminBtn { position: fixed; top: 15px; right: 15px; z-index: 1000; background: white; border: 1px solid #ddd; padding: 10px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .header { position: fixed; top: 15px; left: 15px; z-index: 1000; background: white; padding: 8px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
+        #adminBtn { position: fixed; top: 15px; right: 15px; z-index: 1000; background: white; border: none; padding: 10px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; }
 
-        /* Chat System */
         #chatDrawer { position: fixed; bottom: -60vh; left: 0; width: 100%; height: 60vh; background: white; z-index: 2000; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.3); transition: 0.4s; display: flex; flex-direction: column; }
         #chatDrawer.active { bottom: 0; }
-        .chat-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; }
-        .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; margin-bottom: 30px; }
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f1f3f4; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 80%; padding: 8px 14px; border-radius: 15px; font-size: 14px; }
         .msg-me { align-self: flex-end; background: var(--primary); color: white; }
         .msg-other { align-self: flex-start; background: white; color: #333; }
 
-        /* Selection Modal */
         #selector { position: fixed; bottom: 0; left: 0; width: 100%; padding: 25px 20px 50px; background: white; border-radius: 30px 30px 0 0; z-index: 6000; display: none; box-shadow: 0 -10px 30px rgba(0,0,0,0.3); text-align: center; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-        .choice-btn { padding: 22px; border: none; border-radius: 20px; color: white; font-size: 19px; font-weight: bold; cursor: pointer; font-family: 'Kanit'; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .choice-btn { padding: 20px; border: none; border-radius: 18px; color: white; font-size: 18px; font-weight: bold; font-family: 'Kanit'; }
 
-        /* Controls */
-        #nicknameOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9000; display:none; align-items:center; justify-content:center; }
-        .bottom-nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 12px; width: 92%; max-width: 450px; transition: 0.3s; }
+        .bottom-nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; width: 92%; max-width: 480px; transition: 0.3s; }
         .bottom-nav.hide { transform: translate(-50%, 150%); }
-        .btn { flex: 1; padding: 16px; border: none; border-radius: 18px; font-weight: 600; font-size: 16px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Kanit'; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 15px; font-weight: 600; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Kanit'; }
         .btn-report { background: var(--primary); color: white; }
         .btn-confirm { background: var(--accent); color: black; display: none; }
-        .btn-chat { background: #333; color: white; }
 
-        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 10px 20px; border-radius: 10px; z-index: 5000; display: none; }
+        #toast { position: fixed; top: 75px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 18px; border-radius: 10px; z-index: 5000; display: none; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -69,23 +57,22 @@
     <div id="crosshair"><div id="crosshair-dot"></div></div>
     <div id="toast"></div>
 
-    <!-- Login Modal -->
+    <!-- Login/Nick Overlays -->
     <div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:none; align-items:center; justify-content:center;">
-        <div style="background:white; padding:30px; border-radius:24px; text-align:center; width:80%; max-width:300px">
+        <div style="background:white; padding:25px; border-radius:20px; text-align:center; width:280px">
             <h3>Admin Login</h3>
-            <input type="text" id="u" placeholder="Admin ID" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-bottom:10px">
-            <input type="password" id="p" placeholder="Password" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-bottom:15px">
-            <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">เข้าสู่ระบบ</button>
-            <button onclick="document.getElementById('loginOverlay').style.display='none'" style="width:100%; color:#999; margin-top:10px; border:none; background:none">ยกเลิก</button>
+            <input type="text" id="u" placeholder="Admin ID" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd">
+            <input type="password" id="p" placeholder="Password" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd">
+            <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold">ล็อกอิน</button>
+            <button onclick="document.getElementById('loginOverlay').style.display='none'" style="width:100%; margin-top:10px; border:none; background:none; color:#999">ปิด</button>
         </div>
     </div>
 
-    <!-- Nickname Overlay -->
-    <div id="nicknameOverlay">
-        <div style="background:white; padding:30px; border-radius:24px; text-align:center; width:80%; max-width:300px">
-            <h3>ตั้งชื่อเล่นของคุณ</h3>
-            <input type="text" id="nickInput" placeholder="เช่น พี่เสือ อุดร" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
-            <button onclick="saveNick()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">ตกลง</button>
+    <div id="nickOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9000; display:none; align-items:center; justify-content:center;">
+        <div style="background:white; padding:25px; border-radius:20px; text-align:center; width:280px">
+            <h3>ระบุชื่อเล่นของคุณ</h3>
+            <input type="text" id="nickInput" placeholder="เช่น กาย อุดร" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:10px; font-family:'Kanit'">
+            <button onclick="saveNick()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold">เริ่มเลย</button>
         </div>
     </div>
 
@@ -96,223 +83,192 @@
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="20">
-        <h1>รายงานด่านอุดรธานี (Live v12)</h1>
+        <h1>รายงานด่านอุดร (Presence v14)</h1>
     </div>
 
     <div id="map"></div>
 
-    <!-- Selection Modal -->
     <div id="selector">
-        <h2 style="margin:0; font-size:19px">📌 พบด่านประเภทไหนที่จุดนี้?</h2>
+        <h2 style="margin:0; font-size:18px">📌 เลือกประเภทด่านที่พบ</h2>
         <div class="btn-grid">
-            <button class="choice-btn" style="background: #1a73e8" onclick="finalizeData('👮 ด่านจราจร')">👮 ด่านจราจร</button>
-            <button class="choice-btn" style="background: #d93025" onclick="finalizeData('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
+            <button class="choice-btn" style="background:#1a73e8" onclick="onReportFinal('👮 ด่านจราจร')">👮 จราจร</button>
+            <button class="choice-btn" style="background:#d93025" onclick="onReportFinal('🚨 ด่านเป่า')">🚨 ด่านเป่า</button>
         </div>
-        <button onclick="cancelSelect()" style="margin-top:20px; border:none; background:none; color:#bbb; font-family:'Kanit'">ยกเลิก</button>
+        <button onclick="cancelReport()" style="margin-top:20px; border:none; background:none; color:#bbb; font-family:'Kanit'">ยกเลิก</button>
     </div>
 
-    <!-- Chat Drawer -->
     <div id="chatDrawer">
-        <div class="chat-header" onclick="toggleChat()">
-            <strong>💬 ห้องแชทสด (Live Chat)</strong>
+        <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center" onclick="toggleChat()">
+            <strong id="chatHeadline">💬 ห้องแชทสด (ออนไลน์ 0 คน)</strong>
             <i data-lucide="chevron-down"></i>
         </div>
+        <div id="onlineList">
+            <span>ออนไลน์: </span>
+            <div id="presenceTags" style="display:flex; gap:5px"></div>
+        </div>
         <div class="chat-messages" id="chatList"></div>
-        <div class="chat-input-area">
-            <input type="text" id="msgInput" style="flex:1; padding:12px; border:1px solid #ddd; border-radius:30px; outline:none" placeholder="พิมพ์ข้อความที่นี่...">
-            <button onclick="sendMsg()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:30px"><i data-lucide="send"></i></button>
+        <div style="padding:15px; border-top:1px solid #eee; display:flex; gap:10px; margin-bottom:30px">
+            <input type="text" id="msgInput" style="flex:1; padding:12px; border:1px solid #ddd; border-radius:30px; outline:none" placeholder="คุยกันได้ที่นี่..." onkeypress="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" style="background:var(--primary); color:white; border:none; width:45px; height:45px; border-radius:50%"><i data-lucide="send" style="width:18px"></i></button>
         </div>
     </div>
 
     <div class="bottom-nav">
-        <button class="btn btn-chat" onclick="toggleChat()"><i data-lucide="message-square"></i> แชท</button>
-        <button class="btn btn-report" id="reportBtn" onclick="startSelect()">📌 แจ้งพบด่าน</button>
-        <button class="btn btn-confirm" id="confirmPosBtn" onclick="confirmPoint()">📍 ยืนยันพิกัด</button>
-        <button class="btn" onclick="location.reload()"><i data-lucide="rotate-cw"></i></button>
+        <button class="btn" style="background:#333; color:white" onclick="toggleChat()"><i data-lucide="message-square"></i> แชท</button>
+        <button class="btn btn-report" id="reportBtn" onclick="startReport()">📌 แจ้งด่าน</button>
+        <button class="btn btn-confirm" id="confirmPosBtn" onclick="confirmPos()">📍 ยืนยันพิกัด</button>
+        <button class="btn" onclick="location.reload()"><i data-lucide="rotate-cw" style="width:20px"></i></button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- Firebase (Demo Mode) ---
-        const fbConfig = { databaseURL: "https://udon-checkpoint-demo-default-rtdb.firebaseio.com" };
-        let db = null;
-        try { firebase.initializeApp(fbConfig); db = firebase.database(); } catch(e) {}
+        // --- Firebase Config (User Provided) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD98OmwUysgQdUmFe0V8EavoO4fCVlzUQs",
+            authDomain: "udcp-dade8.firebaseapp.com",
+            projectId: "udcp-dade8",
+            storageBucket: "udcp-dade8.firebasestorage.app",
+            messagingSenderId: "736886466307",
+            appId: "1:736886466307:web:2ffd5a44d5f0b88ec76b36",
+            measurementId: "G-P6SYB59ZGP"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const P_REF = db.ref('points');
+        const C_REF = db.ref('chat');
+        const PRES_REF = db.ref('presence');
 
-        const DATA_KEY = 'udon_v12_points';
-        const VOTES_KEY = 'udon_v12_votes';
+        const VOTED_KEY = 'ud_voted_ids';
         const EXPIRED = 3 * 60 * 60 * 1000;
-        let map, markerGroup, isAdmin = sessionStorage.getItem('isAdmin')==='true';
+        let map, markerGroup, isAdmin = sessionStorage.getItem('asAdmin') === 'true';
         let nick = localStorage.getItem('chat_nick');
+        let myPresenceRef = null;
 
         window.onload = () => {
             initMap();
-            if(isAdmin) setAdminUI();
+            listenPoints();
             listenChat();
+            listenPresence();
+            if(isAdmin) setAdminUI();
+            if(!nick) document.getElementById('nickOverlay').style.display='flex';
+            else setupPresence();
             lucide.createIcons();
         };
 
-        function initMap() {
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([17.4138, 102.7872], 14);
-            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
-            markerGroup = L.layerGroup().addTo(map);
-            renderMarkers();
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(p => {
-                    const latlng = [p.coords.latitude, p.coords.longitude];
-                    L.circleMarker(latlng, { radius: 7, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map);
-                    map.panTo(latlng);
-                }, null, { enableHighAccuracy: true });
-            }
-        }
-
-        // --- Marker Logic (Precision) ---
-        function renderMarkers() {
-            markerGroup.clearLayers();
-            let data = JSON.parse(localStorage.getItem(DATA_KEY) || "[]");
-            const now = Date.now();
-            data = data.filter(p => (now - p.id) < EXPIRED);
-            localStorage.setItem(DATA_KEY, JSON.stringify(data));
-
-            data.forEach(p => {
-                const date = new Date(p.id);
-                const timeStr = date.getHours().toString().padStart(2,'0')+':'+date.getMinutes().toString().padStart(2,'0');
-                const html = `
-                    <div class="marker-wrapper">
-                        <div class="straight-pin"><span class="pin-emoji">${p.type.includes('จราจร')?'👮':'🚨'}</span></div>
-                        <div class="pin-label">${p.type}<br><small>แจ้งเมื่อ ${timeStr}</small></div>
-                    </div>
-                `;
-                const m = L.marker([p.lat, p.lng], { 
-                    icon: L.divIcon({ className:'dm', html, iconSize:[0,0], iconAnchor:[20,52] }) 
-                }).addTo(markerGroup);
-
-                m.bindPopup(`
-                    <div style="text-align:center">
-                        <b>${p.type}</b><br><small>แจ้งเมื่อ ${timeStr}</small><hr>
-                        <button onclick="votePoint(${p.id})" style="width:100%; padding:10px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; font-family:'Kanit'; cursor:pointer">
-                            ${isAdmin ? '❌ ลบทันที (Admin)' : `❌ ไม่อยู่แล้ว (${p.votes || 0}/3)`}
-                        </button>
-                    </div>
-                `);
+        // --- Presence Logic (New v14) ---
+        function setupPresence() {
+            if(!nick) return;
+            // สร้างพิกัดออนไลน์ของเรา
+            myPresenceRef = PRES_REF.push();
+            db.ref(".info/connected").on("value", (snap) => {
+                if (snap.val() === true) {
+                    myPresenceRef.onDisconnect().remove();
+                    myPresenceRef.set({ name: nick, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+                }
             });
         }
 
-        function votePoint(id) {
-            if(isAdmin) { delPoint(id); return; }
-            let voted = JSON.parse(localStorage.getItem(VOTES_KEY) || "[]");
-            if(voted.includes(id)) { alert("คุณเคยโหวตจุดนี้ไปแล้วครับ"); return; }
+        function listenPresence() {
+            PRES_REF.on('value', snap => {
+                const list = document.getElementById('presenceTags');
+                const headline = document.getElementById('chatHeadline');
+                let count = 0;
+                list.innerHTML = "";
+                snap.forEach(c => {
+                    count++;
+                    const user = c.val();
+                    const tag = document.createElement('div');
+                    tag.className = 'online-tag';
+                    tag.innerText = user.name;
+                    list.appendChild(tag);
+                });
+                headline.innerText = `💬 ห้องแชทสด (ออนไลน์ ${count} คน)`;
+            });
+        }
 
-            let data = JSON.parse(localStorage.getItem(DATA_KEY) || "[]");
-            const i = data.findIndex(p => p.id === id);
-            if(i !== -1) {
-                data[i].votes = (data[i].votes || 0) + 1;
-                voted.push(id);
-                localStorage.setItem(VOTES_KEY, JSON.stringify(voted));
-                if(data[i].votes >= 3) { data.splice(i, 1); showToast("🧹 ด่านถูกลบแล้วเนื่องจากหายไป"); }
-                localStorage.setItem(DATA_KEY, JSON.stringify(data));
-                renderMarkers();
+        function initMap() {
+            map = L.map('map', { zoomControl:false, attributionControl:false }).setView([17.4138, 102.7872], 14);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+            markerGroup = L.layerGroup().addTo(map);
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(p => {
+                    const center = [p.coords.latitude, p.coords.longitude];
+                    L.circleMarker(center, { radius: 7, fillColor: "#1a73e8", color: "#fff", weight: 3, opacity: 1, fillOpacity: 0.8 }).addTo(map);
+                    map.panTo(center);
+                }, null, { enableHighAccuracy:true });
             }
         }
 
-        function delPoint(id) {
-            let data = JSON.parse(localStorage.getItem(DATA_KEY) || "[]");
-            data = data.filter(p => p.id !== id);
-            localStorage.setItem(DATA_KEY, JSON.stringify(data));
-            renderMarkers();
-            showToast("🗑️ แอดมินลบจุดนี้แล้ว");
+        function listenPoints() {
+            P_REF.on('value', snap => {
+                markerGroup.clearLayers();
+                snap.forEach(child => {
+                    const p = child.val();
+                    const key = child.key;
+                    if (Date.now() - p.createdAt > EXPIRED) { P_REF.child(key).remove(); return; }
+                    
+                    const date = new Date(p.createdAt);
+                    const timeStr = date.getHours().toString().padStart(2,'0')+':'+date.getMinutes().toString().padStart(2,'0');
+                    const html = `
+                        <div class="marker-wrapper">
+                            <div class="straight-pin"><span class="pin-emoji">${p.type.includes('จราจร')?'👮':'🚨'}</span></div>
+                            <div class="pin-label">${p.type}<br><small>แจ้งเมื่อ ${timeStr}</small></div>
+                        </div>
+                    `;
+                    const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'dm', html, iconSize:[0,0], iconAnchor:[20,52] }) }).addTo(markerGroup);
+                    m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>เวลา ${timeStr}</small><hr><button onclick="voteRemoval('${key}')" style="width:100%; padding:10px; background:var(--red); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer">${isAdmin ? '❌ ลบทันที' : `❌ ไม่อยู่แล้ว (${p.votes || 0}/3)`}</button></div>`);
+                });
+            });
         }
 
-        // --- Selection Logic ---
-        function startSelect() {
-            document.getElementById('crosshair').style.display = 'block';
-            document.getElementById('reportBtn').style.display = 'none';
-            document.getElementById('confirmPosBtn').style.display = 'flex';
-            showToast("📍 เลื่อนแผนที่ให้พิกัดตรงกับกากบาทสีแดง");
-        }
-        function cancelSelect() {
-            document.getElementById('crosshair').style.display = 'none';
-            document.getElementById('reportBtn').style.display = 'flex';
-            document.getElementById('confirmPosBtn').style.display = 'none';
-            document.getElementById('selector').style.display = 'none';
-        }
-        function confirmPoint() {
-            window.tempLatLng = map.getCenter();
-            document.getElementById('selector').style.display = 'block';
-        }
-        function finalizeData(type) {
-            const loc = window.tempLatLng;
-            const data = JSON.parse(localStorage.getItem(DATA_KEY) || "[]");
-            data.push({ id: Date.now(), lat: loc.lat, lng: loc.lng, type, votes: 0 });
-            localStorage.setItem(DATA_KEY, JSON.stringify(data));
-            cancelSelect();
-            renderMarkers();
-            showToast("✅ แจ้งด่านสำเร็จ!");
-            if(db) sendMsg(`🚨 แจ้งด่านใหม่: ${type} ที่อุดรธานี!`, true);
+        function voteRemoval(key) {
+            if(isAdmin) { P_REF.child(key).remove(); return; }
+            let voted = JSON.parse(localStorage.getItem(VOTED_KEY) || "[]");
+            if(voted.includes(key)) return alert("โหวตไปแล้ว");
+            P_REF.child(key).transaction(c => {
+                if(c) { c.votes = (c.votes || 0) + 1; if(c.votes >= 3) return null; }
+                return c;
+            }, (err, com) => { if(com) { voted.push(key); localStorage.setItem(VOTED_KEY, JSON.stringify(voted)); } });
         }
 
-        // --- Admin Logic ---
-        function toggleAdmin() { if(!isAdmin) document.getElementById('loginOverlay').style.display='flex'; else logoutAdmin(); }
-        function doLogin() {
-            if(document.getElementById('u').value==='admin' && document.getElementById('p').value==='admin22') {
-                isAdmin=true; sessionStorage.setItem('isAdmin', 'true');
-                setAdminUI(); document.getElementById('loginOverlay').style.display='none';
-                showToast("🔐 แอดมินเข้าสู่ระบบแล้ว");
-            } else alert("รหัสผ่านไม่ถูกต้อง");
-        }
-        function setAdminUI() {
-            document.getElementById('adminIcon').style.display='block';
-            document.getElementById('userIcon').style.display='none';
-            renderMarkers();
-        }
-        function logoutAdmin() {
-            isAdmin=false; sessionStorage.removeItem('isAdmin');
-            document.getElementById('adminIcon').style.display='none';
-            document.getElementById('userIcon').style.display='block';
-            showToast("🔓 ออกจากระบบแอดมิน");
-            renderMarkers();
+        function startReport() { document.getElementById('crosshair').style.display='block'; document.getElementById('reportBtn').style.display='none'; document.getElementById('confirmPosBtn').style.display='flex'; }
+        function cancelReport() { document.getElementById('crosshair').style.display='none'; document.getElementById('reportBtn').style.display='flex'; document.getElementById('confirmPosBtn').style.display='none'; document.getElementById('selector').style.display='none'; }
+        function confirmPos() { window.activeLL = map.getCenter(); document.getElementById('selector').style.display='block'; }
+        function onReportFinal(type) {
+            P_REF.push({ lat: window.activeLL.lat, lng: window.activeLL.lng, type, createdAt: firebase.database.ServerValue.TIMESTAMP, votes: 0, reporter: nick });
+            sendMsg(`🚨 แจ้งด่านใหม่: ${type}`, true);
+            cancelReport();
         }
 
-        // --- Chat Logic ---
-        function toggleChat() {
-            const dr = document.getElementById('chatDrawer');
-            dr.classList.toggle('active');
-            document.querySelector('.bottom-nav').classList.toggle('hide');
-            if(dr.classList.contains('active') && !nick) document.getElementById('nicknameOverlay').style.display='flex';
-        }
+        function toggleChat() { document.getElementById('chatDrawer').classList.toggle('active'); document.querySelector('.bottom-nav').classList.toggle('hide'); }
         function saveNick() {
             const v = document.getElementById('nickInput').value.trim();
-            if(v) { nick=v; localStorage.setItem('chat_nick', v); document.getElementById('nicknameOverlay').style.display='none'; }
+            if(v) { nick=v; localStorage.setItem('chat_nick', v); document.getElementById('nickOverlay').style.display='none'; setupPresence(); }
         }
-        function sendMsg(cMsg, isSys=false) {
+        function sendMsg(cMsg) {
             const text = cMsg || document.getElementById('msgInput').value.trim();
             if(!text || !nick) return;
-            const data = { s: nick, t: text, time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}), ts: Date.now() };
-            if(db) db.ref('msgs').push(data); else appendMsg(data);
+            C_REF.push({ n: nick, t: text, ts: firebase.database.ServerValue.TIMESTAMP });
             document.getElementById('msgInput').value = "";
         }
         function listenChat() {
-            if(db) db.ref('msgs').limitToLast(30).on('value', snap => {
-                document.getElementById('chatList').innerHTML = "";
-                snap.forEach(c => appendMsg(c.val()));
-                document.getElementById('chatList').scrollTop = 99999;
+            C_REF.limitToLast(50).on('value', snap => {
+                const list = document.getElementById('chatList'); list.innerHTML = "";
+                snap.forEach(c => {
+                    const m = c.val(); const isMe = m.n === nick;
+                    const div = document.createElement('div'); div.className = `msg ${isMe?'msg-me':'msg-other'}`;
+                    div.innerHTML = `<small style="display:block; font-weight:bold; opacity:0.7">${m.n}</small>${m.t}`;
+                    list.appendChild(div);
+                });
+                list.scrollTop = list.scrollHeight;
             });
         }
-        function appendMsg(d) {
-            const list = document.getElementById('chatList');
-            const div = document.createElement('div');
-            const isMe = d.s === nick;
-            div.className = `msg ${isMe?'msg-me':'msg-other'}`;
-            div.innerHTML = `<small style="display:block; font-weight:bold; opacity:0.7">${d.s}</small>${d.t}<small style="display:block; text-align:right; font-size:9px; opacity:0.5">${d.time}</small>`;
-            list.appendChild(div);
-            list.scrollTop = list.scrollHeight;
-        }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerHTML = msg; t.style.display='block';
-            setTimeout(()=>t.style.display='none', 3000);
-        }
+        function toggleAdmin() { if(!isAdmin) document.getElementById('loginOverlay').style.display='flex'; else logout(); }
+        function doLogin() { if(document.getElementById('u').value==='admin' && document.getElementById('p').value==='admin22') { isAdmin=true; sessionStorage.setItem('asAdmin', 'true'); setAdminUI(); document.getElementById('loginOverlay').style.display='none'; } else alert("ผิด"); }
+        function setAdminUI() { document.getElementById('adminIcon').style.display='block'; document.getElementById('userIcon').style.display='none'; }
+        function logout() { isAdmin=false; sessionStorage.removeItem('asAdmin'); document.getElementById('adminIcon').style.display='none'; document.getElementById('userIcon').style.display='block'; }
+        function showToast(msg) { /* logic toast */ }
     </script>
 </body>
 </html>
