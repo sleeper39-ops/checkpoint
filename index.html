@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Udon Checkpoint</title>
+    <title>Udon Checkpoint - v34 Precision Pin</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -13,15 +13,24 @@
         #map { height: 100vh; width: 100vw; z-index: 10; }
         .header { position: fixed; top: 12px; left: 12px; z-index: 1000; background: white; padding: 6px 14px; border-radius: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 6px; }
         .header h1 { margin: 0; font-size: 13px; color: #333; font-weight: 600; }
+        
+        /* New Crosshair Pin 📌 (v34) */
+        #crosshair { 
+            position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -100%); /* ปรับให้ปลายหมุดอยู่ตรงกลางเป๊ะ */
+            z-index: 5000; display: none; 
+            font-size: 34px; pointer-events: none; 
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+
         .pin-container { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         .white-circle { background: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 1.5px solid white; position: relative; font-size: 20px; pointer-events: auto; }
         .white-circle::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid white; }
-        .label-tag { background: rgba(0,0,0,0.85); color: white; padding: 3px 10px; border-radius: 10px; font-size: 10px; margin-top: 4px; white-space: nowrap; pointer-events: auto; text-align: center; line-height: 1.25; border: 1px solid rgba(255,255,255,0.15); }
+        .label-tag { background: rgba(0,0,0,0.85); color: white; padding: 3px 12px; border-radius: 12px; font-size: 10px; margin-top: 4px; white-space: nowrap; pointer-events: auto; text-align: center; line-height: 1.3; border: 1px solid rgba(255,255,255,0.15); }
+        
         #chatDrawer { position: fixed; bottom: -65vh; left: 0; width: 100%; height: 60vh; background: white; z-index: 2000; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.3); transition: 0.4s; display: flex; flex-direction: column; }
         #chatDrawer.active { bottom: 0; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 8px; }
-        .msg { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 14px; position: relative; }
-        .chat-img { width: 100%; max-width: 250px; border-radius: 12px; margin-top: 5px; display: block; pointer-events: none; }
         .bottom-nav { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; width: 92%; max-width: 450px; transition: 0.3s; }
         .btn { flex: 1; padding: 16px; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; background: white; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Kanit'; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9200; display: none; align-items: center; justify-content: center; }
@@ -32,7 +41,7 @@
 </head>
 <body>
 
-    <div id="crosshair" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:5000; display:none; width:34px; height:34px; border:1px solid rgba(255,165,0,0.5); border-radius:50%; pointer-events:none;"><div style="position:absolute; top:16px; left:0; width:100%; height:2px; background:orange;"></div><div style="position:absolute; left:16px; top:0; width:2px; height:100%; background:orange;"></div></div>
+    <div id="crosshair">📌</div>
     <div id="toast" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:white; padding:8px 16px; border-radius:8px; z-index:8000; display:none; font-size:13px;"></div>
 
     <div id="loginOverlay" class="overlay">
@@ -55,11 +64,11 @@
 
     <div class="header">
         <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="16">
-        <h1>Udon Checkpoint</h1>
+        <h1>Udon Checkpoint (Boss v34)</h1>
         <button id="clearChatBtn" style="display:none; background:red; color:white; padding:4px 10px; border:none; border-radius:20px; font-size:10px; margin-left:8px" onclick="clearAllChat()">ล้างแชท</button>
     </div>
 
-    <button id="adminBtn" style="position:fixed; top:12px; right:12px; z-index:1000; background:white; border:none; padding:8px; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2); cursor:pointer;" onclick="handleAdminClick()">
+    <button id="adminBtn" style="position:fixed; top:12px; right:12px; z-index:1000; background:white; border:none; padding:8px; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);" onclick="handleAdminClick()">
         <i data-lucide="shield-check" id="adminIcon" style="color:var(--primary); display:none"></i>
         <i data-lucide="user" id="userIcon"></i>
     </button>
@@ -68,7 +77,7 @@
 
     <div id="chatDrawer">
         <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center" onclick="toggleChat()">
-            <strong id="chatHeadline" style="font-size:14px">💬 แชทสด (Online 0)</strong>
+            <strong id="chatHeadline" style="font-size:14px">💬 แชทสด</strong>
             <i data-lucide="chevron-down" style="width:18px"></i>
         </div>
         <div id="onlineList" style="background:#fff; border-bottom:1px solid #eee; padding:8px 12px; font-size:10px; display:flex; gap:6px; overflow-x:auto;"></div>
@@ -99,17 +108,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 🤫 Obfuscated Data Section (Base64) ---
-        const _0x1 = {
-            f1: atob("QUl6YVN5RDk4T213VXlzZ1FkVW1GZTBWOEVhdm9PNGZDVmx6VVFz"), // Firebase Key
-            f2: atob("dWRjcC1kYWRlOC5maXJlYmFzZWFwcC5jb20="), // AuthDomain
-            f3: atob("dWRjcC1kYWRlOA=="), // ProjectID
-            f4: atob("aHR0cHM6Ly91ZGNwLWRhZGU4LWRlZmF1bHQtcnRkYi5hc2lhLXNvdXRoZWFzdDEuZmlyZWJhc2VkYXRhYmFzZS5hcHA="), // RTDB URL
-            i1: atob("OWRkODJjM2UwOTk4M2M2M2VjN2NiYWRiMmQ3Y2YxYmQ="), // ImgBB Key
-            a1: atob("YWRtaW4="), // Admin User
-            a2: atob("YWRtaW4yMg==") // Admin Pass
-        };
-
+        // --- 🤫 Obfuscated Data Section ---
+        const _0x1 = { f1: atob("QUl6YVN5RDk4T213VXlzZ1FkVW1GZTBWOEVhdm9PNGZDVmx6VVFz"), f2: atob("dWRjcC1kYWRlOC5maXJlYmFzZWFwcC5jb20="), f3: atob("dWRjcC1kYWRlOA=="), f4: atob("aHR0cHM6Ly91ZGNwLWRhZGU4LWRlZmF1bHQtcnRkYi5hc2lhLXNvdXRoZWFzdDEuZmlyZWJhc2VkYXRhYmFzZS5hcHA="), i1: atob("OWRkODJjM2UwOTk4M2M2M2VjN2NiYWRiMmQ3Y2YxYmQ="), a1: atob("YWRtaW4="), a2: atob("YWRtaW4yMg==") };
         firebase.initializeApp({ apiKey: _0x1.f1, authDomain: _0x1.f2, projectId: _0x1.f3, databaseURL: _0x1.f4 });
         const db = firebase.database();
         const P_REF = db.ref('points'); const C_REF = db.ref('chat'); const PRES_REF = db.ref('presence');
@@ -124,33 +124,28 @@
         };
 
         function handleAdminClick() { if(isAdmin) { if(confirm("ออกจากแอดมิน?")) doLogout(); } else document.getElementById('loginOverlay').style.display='flex'; }
-        
-        function doLogin() {
-            const _u = document.getElementById('adminU').value;
-            const _p = document.getElementById('adminP').value;
-            if(_u === _0x1.a1 && _p === _0x1.a2) {
-                isAdmin=true; sessionStorage.setItem('isAdmin','true');
-                document.getElementById('loginOverlay').style.display='none';
-                updateAdminUI(true); showToast("🔓 ล็อกอินสำเร็จ");
-            } else alert("Error 403");
-        }
-
-        function doLogout() { isAdmin=false; sessionStorage.setItem('isAdmin','false'); updateAdminUI(false); showToast("🔒 ล็อกเอาท์แล้ว"); }
-        function updateAdminUI(show) {
-            document.getElementById('adminIcon').style.display = show ? 'block' : 'none';
-            document.getElementById('userIcon').style.display = show ? 'none' : 'block';
-            document.getElementById('clearChatBtn').style.display = show ? 'inline-block' : 'none';
-            listenChat(); listenPoints();
-        }
+        function doLogin() { if(document.getElementById('adminU').value === _0x1.a1 && document.getElementById('adminP').value === _0x1.a2) { isAdmin=true; sessionStorage.setItem('isAdmin','true'); document.getElementById('loginOverlay').style.display='none'; updateAdminUI(true); } else alert("Error"); }
+        function doLogout() { isAdmin=false; sessionStorage.setItem('isAdmin','false'); updateAdminUI(false); }
+        function updateAdminUI(show) { document.getElementById('adminIcon').style.display = show ? 'block' : 'none'; document.getElementById('userIcon').style.display = show ? 'none' : 'block'; document.getElementById('clearChatBtn').style.display = show ? 'inline-block' : 'none'; listenChat(); listenPoints(); }
 
         function listenPoints() {
             P_REF.on('value', snap => {
                 markerGroup.clearLayers();
                 snap.forEach(c => {
-                    const p = c.val(); if(Date.now() - p.createdAt > (10800000)) { c.ref.remove(); return; }
+                    const p = c.val(); if(Date.now() - p.createdAt > 10800000) { c.ref.remove(); return; }
                     const d = new Date(p.createdAt); const time = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                     const emo = p.type.includes('จราจร') ? '👮' : '🚨';
-                    const html = `<div class="pin-container"><div class="white-circle">${emo}</div><div class="label-tag"><div style="font-weight:600; font-size:10px">${p.type}</div><div style="font-size:9px; opacity:0.9">(${p.reporter}) ${time}</div></div></div>`;
+                    
+                    // ปรับแต่งตามสั่ง: เพิ่มคำว่า "แจ้งเมื่อ" (v34)
+                    const html = `
+                        <div class="pin-container">
+                            <div class="white-circle">${emo}</div>
+                            <div class="label-tag">
+                                <div style="font-weight:600; font-size:10px">${p.type}</div>
+                                <div style="font-size:9px; opacity:0.9">(${p.reporter}) แจ้งเมื่อ ${time}</div>
+                            </div>
+                        </div>`;
+                    
                     const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className:'dm', html, iconSize:[0,0], iconAnchor:[17,45] }) }).addTo(markerGroup);
                     m.bindPopup(`<div style="text-align:center"><b>${p.type}</b><br><small>${time}</small><hr><button onclick="voteDown('${c.key}')" style="width:100%; padding:8px; background:var(--red); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${isAdmin?'❌ ลบทันที':`❌ ไม่อยู่แล้ว (${p.votes||0}/3)`}</button></div>`);
                 });
