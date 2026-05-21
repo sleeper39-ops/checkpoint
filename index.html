@@ -101,7 +101,7 @@
                                     <th class="px-5 py-3 text-sm font-black text-slate-500 uppercase tracking-widest">ฝ่ายที่รับผิดชอบ</th>
                                     <th class="px-5 py-3 text-center text-sm font-black text-slate-500 uppercase tracking-widest">จัดการ</th>
                                 </tr>
-                            </thead>
+                            </tbody>
                             <tbody id="deviceTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
                         </table>
                     </div>
@@ -179,15 +179,16 @@
     </div>
 
     <script>
-        // --- 1. เชื่อมต่อ Firebase ---
+        // --- 1. เชื่อมต่อ Firebase (อัปเดตเป็นโปรเจกต์ใหม่เรียบร้อยแล้ว) ---
         const firebaseConfig = { 
             apiKey: "AIzaSyAPCkf9DLFMd7rpU7-_7EWPB_c6frvxnHg", 
             authDomain: "cougar-dock.firebaseapp.com", 
+            databaseURL: "https://cougar-dock-default-rtdb.asia-southeast1.firebasedatabase.app", 
             projectId: "cougar-dock", 
             storageBucket: "cougar-dock.firebasestorage.app", 
             messagingSenderId: "493550351646", 
-            appId: "1:493550351646:web:af208d9588994ede31050f", 
-            measurementId: "G-JZ2P0P2PP4"
+            appId: "1:493550351646:web:a2e8e9602465dd5f31050f", 
+            measurementId: "G-088T97686H"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -232,6 +233,8 @@
                 default: return 'device-default';
             }
         }
+
+        //ลบส่วนที่เกินออก
 
         function getBadgeStyle(type) {
             switch(type) {
@@ -342,8 +345,8 @@
                     </td>
                     <td class="px-5 py-3 text-center">
                         <div class="flex justify-center gap-2.5">
-                            <button onclick="editDevice(${d.id})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-pencil text-[10px]"></i></button>
-                            <button onclick="deleteDevice(${d.id})" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                            <button onclick="editDevice('${d.id}')" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-pencil text-[10px]"></i></button>
+                            <button onclick="deleteDevice('${d.id}')" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -361,7 +364,7 @@
                 if(device) {
                     used++;
                     html += `
-                        <div onclick="editDevice(${device.id})" class="p-4 rounded-2xl border-3 ${getBadgeStyle(device.type)} cursor-pointer text-center shadow-lg hover:scale-105 transition-all relative group bg-white">
+                        <div onclick="editDevice('${device.id}')" class="p-4 rounded-2xl border-3 ${getBadgeStyle(device.type)} cursor-pointer text-center shadow-lg hover:scale-105 transition-all relative group bg-white">
                             <div class="text-lg font-black opacity-100 mb-2 leading-none">.${i}</div>
                             <i class="fa-solid ${getDeviceIcon(device.type)} text-3xl mb-2" style="color: ${getDeviceIconColor(device.type)}"></i>
                             <div class="text-xs font-bold uppercase tracking-wide">${device.type}</div>
