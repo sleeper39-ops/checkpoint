@@ -15,21 +15,25 @@
         /* แถบสีด้านหน้าสำหรับระบุประเภทอุปกรณ์ (ไม่มีสีพื้นหลังแถว) - คงเดิม */
         .device-server { border-left: 6px solid #ef4444 !important; } /* แดง */
         .device-pc { border-left: 6px solid #3b82f6 !important; }     /* น้ำเงิน */
-        .device-notebook { border-left: 6px solid #22c55e !important; } /* เขียว */
+        .device-notebook { border-left: 6px solid #80cbc4 !important; } /* สีฟ้าอุ่นพาสเทลอ่อน */
         .device-fax { border-left: 6px solid #eab308 !important; }     /* เหลือง */
+        .device-router { border-left: 6px solid #ce93d8 !important; }   /* ม่วงพาสเทลอ่อน */
+        .device-printer { border-left: 6px solid #bcaaa4 !important; }   /* น้ำตาลพาสเทลอ่อน */
         .device-default { border-left: 6px solid #94a3b8 !important; }   /* เทา */
 
         /* สไตล์ Badge ประเภทอุปกรณ์ - คงเดิม */
         .badge-red { color: #ef4444; border: 1px solid #fecaca; background: transparent; }
         .badge-blue { color: #3b82f6; border: 1px solid #bfdbfe; background: transparent; }
-        .badge-green { color: #22c55e; border: 1px solid #bbf7d0; background: transparent; }
-        .badge-yellow { color: #854d0e; border: 1px solid #fef08a; background: transparent; }
-        .badge-gray { color: #64748b; border: 1px solid #e2e8f0; background: transparent; }
+        .badge-cyan { color: #80cbc4; border: 1px solid #b2dfdb; background: transparent; }
+        .badge-yellow { color: #eab308; border: 1px solid #fef08a; background: transparent; }
+        .badge-purple { color: #ce93d8; border: 1px solid #e1bee7; background: transparent; }
+        .badge-brown { color: #bcaaa4; border: 1px solid #d7ccc8; background: transparent; }
+        .badge-gray { color: #94a3b8; border: 1px solid #e2e8f0; background: transparent; }
 
         .ip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
 
         /* ปรับขนาด Font เมนูซ้าย */
-        .sidebar-btn { font-size: 1.15rem !important; }
+        .sidebar-btn { font-size: 1rem !important; }
         
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #1877F2; border-radius: 4px; }
@@ -55,35 +59,33 @@
         </div>
     </nav>
 
-    <div class="max-w-full mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="max-w-full mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
             
             <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-200 sticky top-24">
-                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center pl-2 border-l-4 border-slate-300">ฝ่าย / หน่วยงาน</h3>
+                <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 sticky top-24">
+                    <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center pl-2 border-l-4 border-slate-300">ฝ่าย / หน่วยงาน</h3>
                     <div class="flex flex-col gap-2" id="deptMenu"></div>
 
                     <hr class="my-6 border-slate-100">
                     
-                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center pl-2 border-l-4 border-slate-300">ชนิดอุปกรณ์</h3>
+                    <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center pl-2 border-l-4 border-slate-300">ชนิดอุปกรณ์</h3>
                     <div class="flex flex-col gap-2" id="typeMenu"></div>
-
-                    <hr class="my-6 border-slate-100">
-
-                    <button onclick="toggleIpView()" id="btnIpMap" class="w-full sidebar-btn text-left px-5 py-3 rounded-xl font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 mb-3 border border-slate-200">
-                        <i class="fa-solid fa-table-cells mr-2 text-slate-400"></i> ดูแผนผัง IP
-                    </button>
-                    <button onclick="openModal()" class="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 sidebar-btn">
-                        <i class="fa-solid fa-plus-circle"></i> เพิ่มอุปกรณ์
-                    </button>
                 </div>
             </div>
 
-            <div class="lg:col-span-4 space-y-6">
-                
+            <div class="lg:col-span-4 space-y-4">
+                <div class="flex gap-4">
+                    <button onclick="toggleIpView()" id="btnIpMap" class="flex-1 sidebar-btn px-4 py-2.5 rounded-xl font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200">
+                        <i class="fa-solid fa-table-cells mr-2 text-slate-400"></i> <span id="btnIpMapText">ดูแผนผัง IP</span>
+                    </button>
+                    <button onclick="openModal()" class="flex-1 bg-green-400 hover:bg-green-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 sidebar-btn">
+                        <i class="fa-solid fa-plus-circle"></i> เพิ่มอุปกรณ์
+                    </button>
+                </div>
                 <div class="relative">
-                    <i class="fa-solid fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" onkeyup="filterDevices()" placeholder="ค้นหาชื่ออุปกรณ์, หมายเลข IP, ฝ่าย..." class="w-full pl-16 pr-8 py-4 rounded-[1.5rem] border-2 border-white focus:border-slate-300 bg-white shadow-sm outline-none transition-all text-base font-medium">
+                    <i class="fa-solid fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" onkeyup="filterDevices()" placeholder="ค้นหาชื่ออุปกรณ์, หมายเลข IP, ฝ่าย..." class="w-full pl-14 pr-6 py-3 rounded-[1.25rem] border-2 border-white focus:border-slate-300 bg-white shadow-sm outline-none transition-all text-base font-medium">
                 </div>
 
                 <div id="tableView" class="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden">
@@ -91,11 +93,11 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th class="px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">ข้อมูลอุปกรณ์</th>
-                                    <th class="px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">ประเภท</th>
-                                    <th class="px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">หมายเลข IP</th>
-                                    <th class="px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">ฝ่ายที่รับผิดชอบ</th>
-                                    <th class="px-8 py-5 text-center text-xs font-black text-slate-500 uppercase tracking-widest">จัดการ</th>
+                                    <th class="px-5 py-3 text-sm font-black text-slate-500 uppercase tracking-widest">ข้อมูลอุปกรณ์</th>
+                                    <th class="px-5 py-3 text-sm font-black text-slate-500 uppercase tracking-widest">ประเภท</th>
+                                    <th class="px-5 py-3 text-sm font-black text-slate-500 uppercase tracking-widest">หมายเลข IP</th>
+                                    <th class="px-5 py-3 text-sm font-black text-slate-500 uppercase tracking-widest">ฝ่ายที่รับผิดชอบ</th>
+                                    <th class="px-5 py-3 text-center text-sm font-black text-slate-500 uppercase tracking-widest">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody id="deviceTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
@@ -126,12 +128,12 @@
             <form id="deviceForm" onsubmit="handleSave(event)" class="p-10 space-y-6 text-sm">
                 <input type="hidden" id="deviceId">
                 <div>
-                    <label class="block font-black text-slate-500 mb-2 uppercase text-[11px] tracking-widest">ชื่ออุปกรณ์ / รายละเอียด</label>
+                    <label class="block font-black text-slate-500 mb-2 uppercase text-sm tracking-widest">ชื่ออุปกรณ์ / รายละเอียด</label>
                     <input type="text" id="deviceName" required class="w-full px-5 py-3.5 rounded-xl border border-slate-200 focus:border-slate-500 outline-none bg-slate-50 font-semibold" placeholder="ระบุชื่อเรียกอุปกรณ์">
                 </div>
                 <div class="grid grid-cols-2 gap-6">
                     <div>
-                        <label class="block font-black text-slate-500 mb-2 uppercase text-[11px] tracking-widest">ประเภทอุปกรณ์</label>
+                        <label class="block font-black text-slate-500 mb-2 uppercase text-sm tracking-widest">ประเภทอุปกรณ์</label>
                         <select id="deviceType" required class="w-full px-5 py-3.5 rounded-xl border border-slate-200 focus:border-slate-500 outline-none bg-white font-semibold">
                             <option value="PC">คอมพิวเตอร์ (PC)</option>
                             <option value="Notebook">โน้ตบุ๊ก (Notebook)</option>
@@ -146,15 +148,16 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block font-black text-slate-500 mb-2 uppercase text-[11px] tracking-widest">หมายเลข IP Address</label>
+                        <label class="block font-black text-slate-500 mb-2 uppercase text-sm tracking-widest">หมายเลข IP Address</label>
                         <input type="text" id="deviceIp" class="w-full px-5 py-3.5 rounded-xl border border-slate-200 focus:border-slate-500 outline-none mono font-bold text-blue-600" placeholder="192.168.10.x">
                     </div>
                 </div>
                 <div>
-                    <label class="block font-black text-slate-500 mb-2 uppercase text-[11px] tracking-widest">ฝ่ายที่รับผิดชอบ</label>
+                    <label class="block font-black text-slate-500 mb-2 uppercase text-sm tracking-widest">ฝ่ายที่รับผิดชอบ</label>
                     <select id="deviceDept" required class="w-full px-5 py-3.5 rounded-xl border border-slate-200 focus:border-slate-500 outline-none bg-white font-semibold">
                         <option value="ส่วนกลาง">ส่วนกลาง / ระบบหลัก</option>
                         <option value="ศสส.">ศสส.</option>
+                        <option value="ชกส.">ชกส.</option>
                         <option value="ฝขว.">ฝขว.</option>
                         <option value="ฝยก.">ฝยก.</option>
                         <option value="250">250.</option>
@@ -193,7 +196,7 @@
         let currentTypeFilter = 'ทั้งหมด';
         let viewMode = 'table';
 
-        const depts = ['ทั้งหมด', 'ส่วนกลาง', 'ศสส.', 'ฝขว.', 'ฝยก.', '250', 'ปจว.', 'ฝปส.', 'ฝยส.', 'ศสน.'];
+        const depts = ['ทั้งหมด', 'ส่วนกลาง', 'ศสส.', 'ชกส.', 'ฝขว.', 'ฝยก.', '250', 'ปจว.', 'ฝปส.', 'ฝยส.', 'ศสน.'];
         const types = ['ทั้งหมด', 'Server', 'PC', 'Notebook', 'Fax', 'Printer', 'Mobile', 'iPad', 'Router', 'Switch'];
 
         // --- 2. การจัดการสีไอคอนและลำดับไอพี ---
@@ -220,6 +223,8 @@
                 case 'PC': return 'device-pc';
                 case 'Notebook': return 'device-notebook';
                 case 'Fax': return 'device-fax';
+                case 'Router': return 'device-router';
+                case 'Printer': return 'device-printer';
                 default: return 'device-default';
             }
         }
@@ -228,8 +233,10 @@
             switch(type) {
                 case 'Server': return 'badge-red';
                 case 'PC': return 'badge-blue';
-                case 'Notebook': return 'badge-green';
+                case 'Notebook': return 'badge-cyan';
                 case 'Fax': return 'badge-yellow';
+                case 'Router': return 'badge-purple';
+                case 'Printer': return 'badge-brown';
                 default: return 'badge-gray';
             }
         }
@@ -248,16 +255,32 @@
             const colors = {
                 'Server': '#ef4444',
                 'PC': '#3b82f6',
-                'Notebook': '#22c55e',
+                'Notebook': '#80cbc4',
                 'Fax': '#eab308',
-                'Printer': '#94a3b8',
+                'Router': '#ce93d8',
+                'Printer': '#bcaaa4',
                 'Mobile': '#94a3b8',
                 'iPad': '#94a3b8',
-                'Router': '#94a3b8',
                 'Switch': '#94a3b8',
                 'Other': '#94a3b8'
             };
             return colors[type] || '#94a3b8';
+        }
+
+        function getDeviceIconBgColor(type) {
+            const colors = {
+                'Server': '#ffebee',
+                'PC': '#e3f2fd',
+                'Notebook': '#e0f2f1',
+                'Fax': '#fff3e0',
+                'Router': '#f3e5f5',
+                'Printer': '#efebe9',
+                'Mobile': '#f5f5f5',
+                'iPad': '#f5f5f5',
+                'Switch': '#f5f5f5',
+                'Other': '#f5f5f5'
+            };
+            return colors[type] || '#f5f5f5';
         }
 
         // --- 3. การเรนเดอร์ UI ---
@@ -294,29 +317,29 @@
 
             tbody.innerHTML = sortedData.map(d => `
                 <tr class="hover:bg-slate-50/50 transition-all ${getDeviceTypeClass(d.type)} bg-white">
-                    <td class="px-8 py-5">
+                    <td class="px-5 py-3">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 border border-slate-100">
-                                <i class="fa-solid ${getDeviceIcon(d.type)} text-base" style="color: ${getDeviceIconColor(d.type)}"></i>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-100" style="background-color: ${getDeviceIconBgColor(d.type)}">
+                                <i class="fa-solid ${getDeviceIcon(d.type)} text-sm" style="color: ${getDeviceIconColor(d.type)}"></i>
                             </div>
-                            <span class="font-bold text-slate-700 tracking-tight">${d.name}</span>
+                            <span class="font-semibold text-slate-700 tracking-tight text-sm">${d.name}</span>
                         </div>
                     </td>
-                    <td class="px-8 py-5 text-sm">
-                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase border tracking-widest ${getBadgeStyle(d.type)}">
+                    <td class="px-5 py-3 text-sm">
+                        <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase border tracking-widest ${getBadgeStyle(d.type)}">
                             ${d.type}
                         </span>
                     </td>
-                    <td class="px-8 py-5 mono font-bold text-blue-600 text-[13px]">${d.ip || '-'}</td>
-                    <td class="px-8 py-5">
-                        <span class="px-3 py-1 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-500">
+                    <td class="px-5 py-3 mono font-bold text-blue-600 text-sm">${d.ip || '-'}</td>
+                    <td class="px-5 py-3">
+                        <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase border tracking-widest bg-slate-100 text-slate-500 border-slate-200">
                             ${d.dept}
                         </span>
                     </td>
-                    <td class="px-8 py-5 text-center">
+                    <td class="px-5 py-3 text-center">
                         <div class="flex justify-center gap-2.5">
-                            <button onclick="editDevice(${d.id})" class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-pencil text-xs"></i></button>
-                            <button onclick="deleteDevice(${d.id})" class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                            <button onclick="editDevice(${d.id})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-pencil text-[10px]"></i></button>
+                            <button onclick="deleteDevice(${d.id})" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -361,15 +384,31 @@
             viewMode = 'table';
             document.getElementById('tableView').classList.remove('hidden');
             document.getElementById('ipMapView').classList.add('hidden');
+            const btnText = document.getElementById('btnIpMapText');
+            const btnIcon = document.querySelector('#btnIpMap i');
+            btnText.innerText = 'ดูแผนผัง IP';
+            btnIcon.className = 'fa-solid fa-table-cells mr-2 text-slate-400';
             renderFilters();
             filterDevices();
         }
 
         function toggleIpView() {
-            viewMode = 'ipmap';
-            document.getElementById('tableView').classList.add('hidden');
-            document.getElementById('ipMapView').classList.remove('hidden');
-            renderIpMap();
+            const btnText = document.getElementById('btnIpMapText');
+            const btnIcon = document.querySelector('#btnIpMap i');
+            if (viewMode === 'ipmap') {
+                viewMode = 'table';
+                document.getElementById('tableView').classList.remove('hidden');
+                document.getElementById('ipMapView').classList.add('hidden');
+                btnText.innerText = 'ดูแผนผัง IP';
+                btnIcon.className = 'fa-solid fa-table-cells mr-2 text-slate-400';
+            } else {
+                viewMode = 'ipmap';
+                document.getElementById('tableView').classList.add('hidden');
+                document.getElementById('ipMapView').classList.remove('hidden');
+                renderIpMap();
+                btnText.innerText = 'ดูตาราง';
+                btnIcon.className = 'fa-solid fa-table mr-2 text-slate-400';
+            }
         }
 
         function filterDevices() {
