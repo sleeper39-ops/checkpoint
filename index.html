@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f0f2f5; color: #050505; }
         .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
@@ -162,7 +164,7 @@
                         <option value="ฝยก.">ฝยก.</option>
                         <option value="250">250.</option>
                         <option value="ปจว.">ปจว.</option>
-                        <option value="ฝปส.">ฝปส.</option>
+                        <option value="ฝกร.">ฝกร.</option>
                         <option value="ฝยส.">ฝยส.</option>
                         <option value="ศสน.">ศสน.</option>
                     </select>
@@ -177,26 +179,28 @@
     </div>
 
     <script>
-        // --- 1. ข้อมูลเริ่มต้น ---
-        let devices = [
-            { id: 1, name: 'Firewall/Server หลัก', type: 'Server', ip: '192.168.10.1', dept: 'ส่วนกลาง' },
-            { id: 2, name: 'Server ศสส.', type: 'Server', ip: '192.168.10.50', dept: 'ศสส.' },
-            { id: 3, name: 'PC ศสส. 01', type: 'PC', ip: '192.168.10.51', dept: 'ศสส.' },
-            { id: 4, name: 'Fax ศูนย์สารสนเทศ', type: 'Fax', ip: '-', dept: 'ศสส.' },
-            { id: 5, name: 'PC ฝขว. (จุด 76)', type: 'PC', ip: '192.168.10.76', dept: 'ฝขว.' },
-            { id: 6, name: 'Notebook ฝขว.', type: 'Notebook', ip: '192.168.10.64', dept: 'ฝขว.' },
-            { id: 7, name: 'Server ฝยก.', type: 'Server', ip: '192.168.10.100', dept: 'ฝยก.' },
-            { id: 8, name: 'iPad ฝปส.', type: 'iPad', ip: '192.168.10.128', dept: 'ฝปส.' },
-            { id: 9, name: 'Mobile ปจว.', type: 'Mobile', ip: '192.168.10.125', dept: 'ปจว.' },
-            { id: 10, name: 'Printer ฝยก.', type: 'Printer', ip: '192.168.10.105', dept: 'ฝยก.' },
-            { id: 11, name: 'Router Gateway 02', type: 'Router', ip: '192.168.20.1', dept: 'ส่วนกลาง' }
-        ];
+        // --- 1. เชื่อมต่อ Firebase ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyAPCkf9DLFMd7rpU7-_7EWPB_c6frvxnHg", 
+            authDomain: "cougar-dock.firebaseapp.com", 
+            projectId: "cougar-dock", 
+            storageBucket: "cougar-dock.firebasestorage.app", 
+            messagingSenderId: "493550351646", 
+            appId: "1:493550351646:web:af208d9588994ede31050f", 
+            measurementId: "G-JZ2P0P2PP4"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- 2. ข้อมูล ---
+        let devices = [];
 
         let currentDept = 'ทั้งหมด';
         let currentTypeFilter = 'ทั้งหมด';
         let viewMode = 'table';
 
-        const depts = ['ทั้งหมด', 'ส่วนกลาง', 'ศสส.', 'ชกส.', 'ฝขว.', 'ฝยก.', '250', 'ปจว.', 'ฝปส.', 'ฝยส.', 'ศสน.'];
+        const depts = ['ทั้งหมด', 'ส่วนกลาง', 'ศสส.', 'ชกส.', 'ฝขว.', 'ฝยก.', '250', 'ปจว.', 'ฝกร.', 'ฝยส.', 'ศสน.'];
         const types = ['ทั้งหมด', 'Server', 'PC', 'Notebook', 'Fax', 'Printer', 'Mobile', 'iPad', 'Router', 'Switch'];
 
         // --- 2. การจัดการสีไอคอนและลำดับไอพี ---
@@ -448,28 +452,41 @@
 
         function closeModal() { document.getElementById('deviceModal').classList.add('hidden'); document.body.classList.remove('modal-active'); }
 
-        function handleSave(event) {
+        async function handleSave(event) {
             event.preventDefault();
             const id = document.getElementById('deviceId').value;
             const data = {
-                id: id ? parseInt(id) : Date.now(),
                 name: document.getElementById('deviceName').value,
                 type: document.getElementById('deviceType').value,
                 ip: document.getElementById('deviceIp').value,
                 dept: document.getElementById('deviceDept').value
             };
-            if(id) { const idx = devices.findIndex(x => x.id === parseInt(id)); devices[idx] = data; }
-            else { devices.push(data); }
+            if(id) { 
+                await db.collection('devices').doc(id).update(data);
+            } else { 
+                await db.collection('devices').add(data);
+            }
             closeModal();
-            renderFilters();
-            if(viewMode === 'ipmap') renderIpMap(); else filterDevices();
         }
 
         function addWithIp(ip) { openModal(); document.getElementById('deviceIp').value = ip; }
         function editDevice(id) { openModal(id); }
-        function deleteDevice(id) { if(confirm('⚠️ ยืนยันการลบข้อมูลอุปกรณ์นี้ออกจากระบบ?')) { devices = devices.filter(x => x.id !== id); renderFilters(); if(viewMode === 'ipmap') renderIpMap(); else filterDevices(); } }
+        async function deleteDevice(id) { 
+            if(confirm('⚠️ ยืนยันการลบข้อมูลอุปกรณ์นี้ออกจากระบบ?')) { 
+                await db.collection('devices').doc(id).delete();
+            } 
+        }
 
-        window.onload = () => { renderFilters(); renderTable(devices); };
+        window.onload = () => {
+            db.collection('devices').onSnapshot(snapshot => {
+                devices = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderFilters();
+                if(viewMode === 'ipmap') renderIpMap(); else filterDevices();
+            });
+        };
     </script>
 </body>
 </html>
