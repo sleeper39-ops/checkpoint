@@ -49,6 +49,55 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 w-full flex-grow">
+        <!-- Dashboard Section -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 md:gap-3 mb-8">
+            <!-- Total Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center items-center text-center">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <i class="ph-bold ph-users text-sm"></i>
+                    </div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">รายชื่อทั้งหมด</p>
+                </div>
+                <h2 id="totalCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Command Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ส่วนบังคับบัญชา</p>
+                <h2 id="cmdCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- HQ Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">กพ.บก.ควบคุม 2</p>
+                <h2 id="hqCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Finance Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ฝกง.บก.ควบคุม 2</p>
+                <h2 id="financeCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Secret Ops Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ข่ายปฏิบัติการลับ</p>
+                <h2 id="secretCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Surveillance Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-1">ข่ายเฝ้าตรวจ/แจ้งเตือน</p>
+                <h2 id="surveillanceCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Threat Intel Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-1">ข่ายรวบรวมภัยคุกคามรูปแบบใหม่</p>
+                <h2 id="threatCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+            <!-- Ops Personnel -->
+            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col justify-center text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">กพ.ชป.ฯ</p>
+                <h2 id="opsCount" class="text-2xl font-black text-slate-800">0</h2>
+            </div>
+        </div>
+
         <!-- Search and Filter -->
         <div class="mb-6 md:mb-8 relative group">
             <i class="ph ph-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg md:text-xl group-focus-within:text-blue-500 transition-colors"></i>
@@ -183,6 +232,54 @@
             const tbody = document.getElementById('personnelTableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             
+            // Dashboard calculation
+            const cmdCategories = ["ส่วนบังคับบัญชา"];
+            const secretCategories = ["ข่ายปฏิบัติการลับ"];
+            const surveillanceCategories = ["ข่ายเฝ้าตรวจ/แจ้งเตือน"];
+            const threatCategories = ["ข่ายรวบรวมภัยคุกคามรูปแบบใหม่"];
+            const financeCategories = ["ฝกง.บก.ควบคุม 2"];
+            const opsCategories = [
+                "ชุดปฏิบัติการที่ 1", "ชุดปฏิบัติการที่ 2", "ชุดปฏิบัติการที่ 3", 
+                "ชุดปฏิบัติการที่ 4", "ชุดปฏิบัติการที่ 5"
+            ];
+            const hqCategories = [
+                "ศยก.บก.ควบคุม 2", "ฝยก.บก.ควบคุม 2", "ฝ่ายสื่อสาร", "ฝขว.บก.ควบคุม 2", 
+                "ส่วนวางแผนและรวบรวมข้อมูล", "ส่วนกรรมวิธีและวิเคราะห์ข้อมูล", "ชุดเครือข่ายสื่อสารข้อมูล", 
+                "ชุดข่าวกรองทางการสื่อสาร", "ฝ่ายข่าวกรองยาเสพติด", "ฝ่ายกิจการพลเรือน", 
+                "ชุดปฏิบัติการสารนิเทศ", "ศูนย์สนับสนุน", "ฝกพ.บก.ควบคุม 2", 
+                "ฝบก.บก.ควบคุม 2", "ตอนยานยนต์", "หน่วยปฏิบัติการพิเศษ (250)"
+            ];
+
+            let hqTotal = 0;
+            let opsTotal = 0;
+            let cmdTotal = 0;
+            let secretTotal = 0;
+            let surveillanceTotal = 0;
+            let threatTotal = 0;
+            let financeTotal = 0;
+
+            personnel.forEach(p => {
+                const cat = categories.find(c => c.id === p.categoryId);
+                if (cat) {
+                    if (hqCategories.includes(cat.name)) hqTotal++;
+                    if (opsCategories.includes(cat.name)) opsTotal++;
+                    if (cmdCategories.includes(cat.name)) cmdTotal++;
+                    if (secretCategories.includes(cat.name)) secretTotal++;
+                    if (surveillanceCategories.includes(cat.name)) surveillanceTotal++;
+                    if (threatCategories.includes(cat.name)) threatTotal++;
+                    if (financeCategories.includes(cat.name)) financeTotal++;
+                }
+            });
+
+            document.getElementById('totalCount').innerText = personnel.length;
+            document.getElementById('hqCount').innerText = hqTotal;
+            document.getElementById('opsCount').innerText = opsTotal;
+            document.getElementById('cmdCount').innerText = cmdTotal;
+            document.getElementById('secretCount').innerText = secretTotal;
+            document.getElementById('surveillanceCount').innerText = surveillanceTotal;
+            document.getElementById('threatCount').innerText = threatTotal;
+            document.getElementById('financeCount').innerText = financeTotal;
+
             // Filter
             const filtered = personnel.filter(p => 
                 p.fullName.toLowerCase().includes(q) || 
@@ -295,7 +392,7 @@
             const p = personnel.find(x => x.id === id);
             if(!p) return;
 
-            // Get all members in the same category, sorted by order
+            // Get all members in the same category
             const sameCat = personnel
                 .filter(x => x.categoryId === p.categoryId)
                 .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -304,15 +401,26 @@
             const nextIdx = idx + direction;
 
             if(nextIdx >= 0 && nextIdx < sameCat.length) {
-                const other = sameCat[nextIdx];
-                
-                // Swap order values
-                const currentOrder = p.order || 0;
-                const nextOrder = other.order || 0;
+                // IMPORTANT: Re-assign sequential orders to everyone in this category 
+                // to fix any duplicate or missing order values (0, 0, 0 -> 0, 1, 2)
+                const updates = {};
+                sameCat.forEach((item, i) => {
+                    updates[`${item.id}/order`] = i;
+                });
 
-                // Update both in Firebase
-                await db.ref('personnel/' + p.id).update({ order: nextOrder });
-                await db.ref('personnel/' + other.id).update({ order: currentOrder });
+                // Now swap the target index with the next index in our updates object
+                const currentId = sameCat[idx].id;
+                const nextId = sameCat[nextIdx].id;
+                
+                updates[`${currentId}/order`] = nextIdx;
+                updates[`${nextId}/order`] = idx;
+
+                // Perform bulk update to Firebase
+                try {
+                    await db.ref('personnel').update(updates);
+                } catch (err) {
+                    console.error("Sorting error:", err);
+                }
             }
         }
 
